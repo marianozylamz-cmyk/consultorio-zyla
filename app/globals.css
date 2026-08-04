@@ -1,0 +1,32 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: #ffffff;
+  color: #172033;
+}
+
+.btn-primary {
+  @apply inline-flex items-center justify-center rounded-full bg-navy px-6 py-3.5 text-sm font-medium text-white transition-all hover:bg-navy-light active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none;
+}
+
+.btn-secondary {
+  @apply inline-flex items-center justify-center rounded-full border border-line bg-white px-6 py-3.5 text-sm font-medium text-ink transition-all hover:border-navy/40 hover:bg-bgsoft active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none;
+}
+
+.card {
+  @apply rounded-xl2 border border-line bg-white p-6 shadow-card;
+}
+
+.badge-live {
+  @apply inline-flex items-center gap-2 rounded-full bg-skyfaint px-4 py-2 text-sm font-medium text-navy;
+}
+
+.input-field {
+  @apply w-full rounded-xl border border-line bg-white px-4 py-3 text-ink placeholder:text-muted/70 outline-none transition-colors focus:border-navy;
+}
