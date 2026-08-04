@@ -17,7 +17,7 @@ export const doctorProfile: DoctorProfile = {
   // OBLIGATORIO antes de emitir certificados. Completar con el número real de
   // matrícula nacional/provincial de Juan (ver bloqueo en lib/certificatePdf.ts:
   // si esto queda en null, la plataforma no deja generar certificados).
-  matricula: 101010,
+  matricula: "480000",
   ciudad: "Olavarría",
   provincia: "Buenos Aires",
   consultorio: {
