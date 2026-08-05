@@ -81,7 +81,6 @@ export interface Consultation {
   precio: number;
   duracionMinutos: number;
   estado: ConsultationStatus;
-  salaVideoId: string; // identificador largo y no adivinable para la sala de Jitsi (independiente del id de la consulta)
   pago: {
     estado: "pendiente" | "aprobado" | "rechazado";
     metodo: "mock" | "mercadopago";

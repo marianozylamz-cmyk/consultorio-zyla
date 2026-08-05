@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getConsultation } from "@/lib/store";
+import { errorDeServidor } from "@/lib/apiErrors";
 import { generarCertificadoPdf } from "@/lib/certificatePdf";
 import { documentService } from "@/services/documentService";
 import { doctorProfile } from "@/data/doctorProfile";
@@ -14,28 +15,28 @@ import { CertificateInput } from "@/types";
 // ==========================================================
 
 export async function POST(req: Request, { params }: { params: { id: string } }) {
-  const consultation = getConsultation(params.id);
-  if (!consultation) {
-    return NextResponse.json({ error: "Consulta no encontrada" }, { status: 404 });
-  }
-
-  if (!doctorProfile.matricula) {
-    return NextResponse.json(
-      {
-        error:
-          "Falta cargar la matrícula del médico antes de poder emitir certificados. Completar doctorProfile.matricula en data/doctorProfile.ts.",
-      },
-      { status: 412 }
-    );
-  }
-
-  const input = (await req.json()) as CertificateInput;
-
-  if (!input.diagnostico?.trim()) {
-    return NextResponse.json({ error: "El diagnóstico es obligatorio." }, { status: 400 });
-  }
-
   try {
+    const consultation = await getConsultation(params.id);
+    if (!consultation) {
+      return NextResponse.json({ error: "Consulta no encontrada" }, { status: 404 });
+    }
+
+    if (!doctorProfile.matricula) {
+      return NextResponse.json(
+        {
+          error:
+            "Falta cargar la matrícula del médico antes de poder emitir certificados. Completar doctorProfile.matricula en data/doctorProfile.ts.",
+        },
+        { status: 412 }
+      );
+    }
+
+    const input = (await req.json()) as CertificateInput;
+
+    if (!input.diagnostico?.trim()) {
+      return NextResponse.json({ error: "El diagnóstico es obligatorio." }, { status: 400 });
+    }
+
     const pdfBuffer = await generarCertificadoPdf(consultation, input);
     const dataUrl = `data:application/pdf;base64,${pdfBuffer.toString("base64")}`;
     const nombreArchivo = `certificado-${consultation.paciente.nombre.replace(/\s+/g, "_").toLowerCase()}-${consultation.fecha}.pdf`;
@@ -50,8 +51,6 @@ export async function POST(req: Request, { params }: { params: { id: string } })
 
     return NextResponse.json(doc, { status: 201 });
   } catch (error) {
-    console.error("[certificado] Error generando el PDF:", error);
-    const mensaje = error instanceof Error ? error.message : "No se pudo generar el certificado.";
-    return NextResponse.json({ error: mensaje }, { status: 500 });
+    return errorDeServidor(error, "No se pudo generar el certificado.");
   }
 }

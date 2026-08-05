@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { consultarPago } from "@/lib/mercadopago";
-import { listConsultations, updateConsultation } from "@/lib/store";
+import { getConsultation, updateConsultation } from "@/lib/store";
 import { notificationService } from "@/services/notificationService";
 
 // ==========================================================
@@ -33,14 +33,14 @@ export async function POST(req: Request) {
     const pago = await consultarPago(paymentId);
     const consultationId = pago.external_reference;
 
-    const consultation = listConsultations().find((c) => c.id === consultationId);
+    const consultation = await getConsultation(consultationId);
     if (!consultation) {
       console.warn(`[mp-webhook] Pago ${paymentId} referencia una consulta inexistente: ${consultationId}`);
       return NextResponse.json({ recibido: true });
     }
 
     if (pago.status === "approved" && consultation.estado === "pendiente_pago") {
-      const updated = updateConsultation(consultation.id, {
+      const updated = await updateConsultation(consultation.id, {
         estado: "esperando",
         pago: {
           ...consultation.pago,
@@ -54,7 +54,7 @@ export async function POST(req: Request) {
         await notificationService.notifyDoctorNewConsultation(updated);
       }
     } else if (pago.status === "rejected" && consultation.estado === "pendiente_pago") {
-      updateConsultation(consultation.id, {
+      await updateConsultation(consultation.id, {
         estado: "rechazada",
         pago: { ...consultation.pago, estado: "rechazado", metodo: "mercadopago", mpPaymentId: String(pago.id) },
       });

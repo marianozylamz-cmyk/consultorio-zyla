@@ -104,17 +104,41 @@ a un Jitsi auto-alojado o a Daily.co tocando solo `services/videoCallService.ts`
 
 | Servicio | Estado | Detalle |
 |---|---|---|
+| `lib/store.ts` | **Real** | Supabase es la única fuente de verdad — ver sección "Persistencia" abajo. |
 | `lib/mercadopago.ts` | **Real** (con Access Token) | Checkout Pro: preferencia + webhook. Sin token configurado, cae a botones de demo. |
-| `services/videoCallService.ts` | **Real** | Jitsi Meet embebido, gratis, sin cuenta. Sala con ID aleatorio no adivinable por consulta. |
 | `lib/email.ts` | **Real** (con SMTP configurado) | Nodemailer. Notifica al médico y envía documentos/certificados como adjunto directo. Sin SMTP, loguea por consola. |
 | `lib/certificatePdf.ts` | **Real** | PDF generado en el momento con `pdf-lib`. Bloqueado hasta cargar `doctorProfile.matricula`. |
 | `services/notificationService.ts` (WhatsApp) | Simulado | Necesita la WhatsApp Business API oficial (Meta Cloud API o Twilio/360dialog) con plantilla pre-aprobada por Meta — no se puede activar solo con código. |
-| `services/documentService.ts` | Simulado (almacenamiento) | Archivos en memoria (base64), respaldados en `.localdb/store.json`. Para producción, migrar a S3 / Supabase Storage / Cloudinary. |
+| `services/documentService.ts` (almacenamiento del archivo) | Real, pero de paso | El PDF/imagen se guarda en base64 dentro de la columna `documentos` (jsonb) de la consulta en Supabase. Funciona, pero para volumen alto o archivos grandes conviene migrar a Supabase Storage — ver "Mejoras recomendadas". |
 
-El estado de las consultas y la disponibilidad vive en `lib/store.ts`, respaldado en
-`.localdb/store.json`. Es un archivo local, no una base de datos concurrente — para un despliegue
-con más de un proceso a la vez (ej. Vercel serverless), conviene migrar a Supabase/Postgres,
-reemplazando solo `lib/persistence.ts`.
+> Nota: la sección de videollamada de este README puede estar desactualizada respecto al código
+> actual (se simplificó a un link fijo de Google Meet en `doctorProfile.videollamadaUrl` en algún
+> punto). No se tocó en esta ronda, que se enfocó exclusivamente en la migración de persistencia.
+
+## Persistencia — Supabase
+
+Ya no hay `.localdb`, `lib/persistence.ts` ni estado en memoria. Todo pasa por `lib/store.ts`,
+que ahora es 100% async y habla directo con Supabase.
+
+**Variables de entorno necesarias** (ver `.env.example`):
+- `NEXT_PUBLIC_SUPABASE_URL` — la misma URL de proyecto que ya tenías configurada.
+- `SUPABASE_SERVICE_ROLE_KEY` — **nueva**, hay que agregarla. Se consigue en Supabase →
+  Project Settings → API → `service_role` (la secreta, no la `anon`). Se usa server-side
+  únicamente — nunca llega al navegador.
+
+**Tablas:**
+- `availability` — ya existía tal cual la tenías (id, activo, horario_semanal, excepciones,
+  updated_at), no se tocó. Siempre se lee/escribe la fila `id=1`.
+- `consultations` — el esquema que asume el código está en `supabase/migration.sql`. Se diseñó
+  siguiendo el mismo patrón que `availability` (columnas planas para lo que se filtra, `jsonb`
+  para lo anidado). **Si tu tabla real tiene otra estructura, avisá** — los únicos lugares que
+  conocen los nombres de columna son las funciones `rowToConsultation` /
+  `consultationToInsertRow` / `partialConsultationToRow` en `lib/store.ts`.
+
+**Importante:** esta migración se armó y se verificó por build + revisión de código (sin acceso
+de red a Supabase desde este entorno de trabajo). No se pudo hacer una prueba real de
+lectura/escritura contra tu proyecto — probalo vos localmente con `.env.local` apuntando a tus
+credenciales reales antes de deployar a Vercel.
 
 ## Lo más importante que sigue faltando (fuera de esta ronda)
 
@@ -123,10 +147,14 @@ pacientes (nombre, DNI, WhatsApp, email) y puede tocar la disponibilidad. Esto h
 resolverlo antes de usar la plataforma con pacientes reales — no hace falta un sistema de roles
 complejo, alcanza con usuario/contraseña único para Juan.
 
+~~Persistencia en Vercel~~ — resuelto en esta ronda: Supabase es la única fuente de verdad, ya
+no se pierden datos entre despliegues.
+
 Otros pendientes conocidos, en orden de importancia: choque de turnos (dos personas pueden
 reservar el mismo horario), consulta que se cuelga para siempre si el paciente no aparece o Juan
 no atiende, verificación de firma del webhook de Mercado Pago, rate limiting en las APIs
-públicas, y los legales básicos (términos y condiciones, consentimiento de telemedicina).
+públicas, los legales básicos (términos y condiciones, consentimiento de telemedicina), y migrar
+los documentos/certificados de base64-en-jsonb a Supabase Storage si el volumen crece.
 
 ## Estructura
 
@@ -140,7 +168,8 @@ app/                              páginas (App Router) + rutas de API
     mp/webhook/                     confirma pagos de Mercado Pago
 components/                       UI compartida (modales, video, iconos)
 services/                         capas de servicio reemplazables (pago, notificaciones, video, documentos)
-lib/                              store + disponibilidad (timezone-safe) + Mercado Pago + email + certificados
+lib/                              store (Supabase) + disponibilidad (timezone-safe) + Mercado Pago + email + certificados
+supabase/migration.sql            esquema de referencia de la tabla `consultations`
 types/                            tipos centrales del dominio
 data/doctorProfile.ts             configuración central del médico (pensado para multi-médico a futuro)
 ```

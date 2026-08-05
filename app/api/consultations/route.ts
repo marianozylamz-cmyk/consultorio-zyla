@@ -1,16 +1,25 @@
 import { NextResponse } from "next/server";
-import { createConsultation, genId, genToken, listConsultations } from "@/lib/store";
+import { createConsultation, listConsultations } from "@/lib/store";
+import { genId } from "@/lib/ids";
+import { errorDeServidor } from "@/lib/apiErrors";
 import { Consultation, Patient } from "@/types";
 import { doctorProfile } from "@/data/doctorProfile";
 
+// Nunca cachear/pre-renderizar: cada request depende de datos en vivo de Supabase.
+export const dynamic = "force-dynamic";
+
 export async function GET(req: Request) {
-  const { searchParams } = new URL(req.url);
-  const estado = searchParams.get("estado");
-  let consultations = listConsultations();
-  if (estado) {
-    consultations = consultations.filter((c) => c.estado === estado);
+  try {
+    const { searchParams } = new URL(req.url);
+    const estado = searchParams.get("estado");
+    let consultations = await listConsultations();
+    if (estado) {
+      consultations = consultations.filter((c) => c.estado === estado);
+    }
+    return NextResponse.json(consultations);
+  } catch (error) {
+    return errorDeServidor(error, "No se pudieron cargar las consultas.");
   }
-  return NextResponse.json(consultations);
 }
 
 export async function POST(req: Request) {
@@ -29,13 +38,16 @@ export async function POST(req: Request) {
     precio: doctorProfile.consultaOnline.precio,
     duracionMinutos: doctorProfile.consultaOnline.duracionMinutos,
     estado: "pendiente_pago",
-    salaVideoId: genToken(),
     pago: { estado: "pendiente", metodo: "mock" },
     creadaEn: new Date().toISOString(),
     documentos: [],
     notificaciones: [],
   };
 
-  createConsultation(consultation);
-  return NextResponse.json(consultation, { status: 201 });
+  try {
+    const creada = await createConsultation(consultation);
+    return NextResponse.json(creada, { status: 201 });
+  } catch (error) {
+    return errorDeServidor(error, "No se pudo crear la consulta.");
+  }
 }

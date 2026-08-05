@@ -1,5 +1,6 @@
 import { DocumentFile, DocumentType } from "@/types";
-import { addDocumentToConsultation, genId, markDocumentSent } from "@/lib/store";
+import { addDocumentToConsultation, markDocumentSent } from "@/lib/store";
+import { genId } from "@/lib/ids";
 
 // ==========================================================
 // Documentos (recetas/certificados/indicaciones). La plataforma
@@ -7,10 +8,10 @@ import { addDocumentToConsultation, genId, markDocumentSent } from "@/lib/store"
 // su sistema externo, y se los envía al paciente por mail
 // directo como adjunto (ver notificationService.sendDocumentToPatient).
 //
-// Hoy: almacenamiento simulado (base64 en memoria).
-// Mañana: reemplazar `guardar()` por una subida real a
-// S3 / Supabase Storage / Cloudinary, guardando la URL firmada
-// en vez del dataUrl.
+// Almacenamiento: el archivo (base64) vive en la columna jsonb
+// `documentos` de la consulta, en Supabase. Para producción con
+// archivos grandes o mucho volumen, conviene migrar a Supabase
+// Storage y guardar acá solo la URL — ver nota en supabase/migration.sql.
 // ==========================================================
 
 class DocumentService {
@@ -31,7 +32,7 @@ class DocumentService {
       subidoEn: new Date().toISOString(),
       enviado: false,
     };
-    addDocumentToConsultation(input.consultationId, doc);
+    await addDocumentToConsultation(input.consultationId, doc);
     return doc;
   }
 

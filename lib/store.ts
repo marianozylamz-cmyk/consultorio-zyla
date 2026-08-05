@@ -1,92 +1,218 @@
-import { AvailabilityConfig, Consultation, DocumentFile } from "@/types";
-import { loadData, saveData } from "@/lib/persistence";
+import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import {
+  AvailabilityConfig,
+  Consultation,
+  ConsultationStatus,
+  DocumentFile,
+  NotificationLog,
+  Patient,
+  Weekday,
+} from "@/types";
 
 // ==========================================================
-// Estado del servidor, ahora respaldado en disco (ver
-// lib/persistence.ts). Se cachea en globalThis para no leer el
-// archivo en cada request y para que ambas pestañas (paciente /
-// admin) vean siempre el mismo estado dentro del mismo proceso.
-// Cada mutación se persiste inmediatamente a .localdb/store.json.
+// Acceso a datos — Supabase es la única fuente de verdad.
+// Ya no hay estado en memoria ni archivo local: cada función acá
+// abajo es una consulta real a la base, por eso todas son async.
+//
+// Esto reemplaza al store en memoria + .localdb/store.json que
+// se usaba antes (útil para la v1 local, pero los datos se
+// perdían entre despliegues de Vercel). lib/persistence.ts queda
+// eliminado por completo — ya no tiene ningún rol.
 // ==========================================================
-
-interface Store {
-  availability: AvailabilityConfig;
-  consultations: Consultation[];
-}
-
-const globalForStore = globalThis as unknown as { __consultorioStore?: Store };
-
-function getStore(): Store {
-  if (!globalForStore.__consultorioStore) {
-    globalForStore.__consultorioStore = loadData();
-  }
-  return globalForStore.__consultorioStore;
-}
-
-function persist() {
-  saveData(getStore());
-}
 
 // ---- Disponibilidad ----
-export function getAvailability(): AvailabilityConfig {
-  return getStore().availability;
+// Fila única (id=1) en la tabla `availability`, ya creada de antes.
+
+interface AvailabilityRow {
+  activo: boolean;
+  horario_semanal: Record<Weekday, AvailabilityConfig["horarioSemanal"][Weekday]>;
+  excepciones: AvailabilityConfig["excepciones"];
 }
 
-export function setAvailability(config: AvailabilityConfig) {
-  getStore().availability = config;
-  persist();
-  return getStore().availability;
+function rowToAvailability(row: AvailabilityRow): AvailabilityConfig {
+  return {
+    activo: row.activo,
+    horarioSemanal: row.horario_semanal,
+    excepciones: row.excepciones ?? [],
+  };
+}
+
+export async function getAvailability(): Promise<AvailabilityConfig> {
+  const { data, error } = await supabaseAdmin
+    .from("availability")
+    .select("activo, horario_semanal, excepciones")
+    .eq("id", 1)
+    .single();
+
+  if (error || !data) {
+    throw new Error(`No se pudo leer la disponibilidad desde Supabase: ${error?.message ?? "sin datos"}`);
+  }
+  return rowToAvailability(data as AvailabilityRow);
+}
+
+export async function setAvailability(config: AvailabilityConfig): Promise<AvailabilityConfig> {
+  const { data, error } = await supabaseAdmin
+    .from("availability")
+    .update({
+      activo: config.activo,
+      horario_semanal: config.horarioSemanal,
+      excepciones: config.excepciones,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", 1)
+    .select("activo, horario_semanal, excepciones")
+    .single();
+
+  if (error || !data) {
+    throw new Error(`No se pudo guardar la disponibilidad en Supabase: ${error?.message ?? "sin datos"}`);
+  }
+  return rowToAvailability(data as AvailabilityRow);
 }
 
 // ---- Consultas ----
-export function listConsultations(): Consultation[] {
-  return getStore().consultations.slice().sort((a, b) => (a.creadaEn < b.creadaEn ? 1 : -1));
+// Ver supabase/migration.sql para el esquema completo asumido de esta tabla.
+
+interface ConsultationRow {
+  id: string;
+  doctor_id: string;
+  paciente: Patient;
+  fecha: string;
+  hora: string;
+  precio: number;
+  duracion_minutos: number;
+  estado: ConsultationStatus;
+  pago: Consultation["pago"];
+  documentos: DocumentFile[];
+  notificaciones: NotificationLog[];
+  creada_en: string;
 }
 
-export function getConsultation(id: string): Consultation | undefined {
-  return getStore().consultations.find((c) => c.id === id);
+function rowToConsultation(row: ConsultationRow): Consultation {
+  return {
+    id: row.id,
+    doctorId: row.doctor_id,
+    paciente: row.paciente,
+    fecha: row.fecha,
+    hora: row.hora,
+    precio: Number(row.precio),
+    duracionMinutos: row.duracion_minutos,
+    estado: row.estado,
+    pago: row.pago,
+    creadaEn: row.creada_en,
+    documentos: row.documentos ?? [],
+    notificaciones: row.notificaciones ?? [],
+  };
 }
 
-export function createConsultation(consultation: Consultation) {
-  getStore().consultations.push(consultation);
-  persist();
-  return consultation;
+function consultationToInsertRow(c: Consultation) {
+  return {
+    id: c.id,
+    doctor_id: c.doctorId,
+    paciente: c.paciente,
+    fecha: c.fecha,
+    hora: c.hora,
+    precio: c.precio,
+    duracion_minutos: c.duracionMinutos,
+    estado: c.estado,
+    pago: c.pago,
+    documentos: c.documentos,
+    notificaciones: c.notificaciones,
+    creada_en: c.creadaEn,
+  };
 }
 
-export function updateConsultation(id: string, patch: Partial<Consultation>) {
-  const store = getStore();
-  const idx = store.consultations.findIndex((c) => c.id === id);
-  if (idx === -1) return undefined;
-  store.consultations[idx] = { ...store.consultations[idx], ...patch };
-  persist();
-  return store.consultations[idx];
+/** Convierte solo los campos presentes en el patch — para no pisar columnas que no vinieron en el update. */
+function partialConsultationToRow(patch: Partial<Consultation>) {
+  const row: Record<string, unknown> = {};
+  if (patch.doctorId !== undefined) row.doctor_id = patch.doctorId;
+  if (patch.paciente !== undefined) row.paciente = patch.paciente;
+  if (patch.fecha !== undefined) row.fecha = patch.fecha;
+  if (patch.hora !== undefined) row.hora = patch.hora;
+  if (patch.precio !== undefined) row.precio = patch.precio;
+  if (patch.duracionMinutos !== undefined) row.duracion_minutos = patch.duracionMinutos;
+  if (patch.estado !== undefined) row.estado = patch.estado;
+  if (patch.pago !== undefined) row.pago = patch.pago;
+  if (patch.documentos !== undefined) row.documentos = patch.documentos;
+  if (patch.notificaciones !== undefined) row.notificaciones = patch.notificaciones;
+  if (patch.creadaEn !== undefined) row.creada_en = patch.creadaEn;
+  return row;
+}
+
+export async function listConsultations(): Promise<Consultation[]> {
+  const { data, error } = await supabaseAdmin
+    .from("consultations")
+    .select("*")
+    .order("creada_en", { ascending: false });
+
+  if (error) throw new Error(`No se pudieron listar las consultas: ${error.message}`);
+  return ((data as ConsultationRow[]) ?? []).map(rowToConsultation);
+}
+
+export async function getConsultation(id: string): Promise<Consultation | undefined> {
+  const { data, error } = await supabaseAdmin.from("consultations").select("*").eq("id", id).maybeSingle();
+
+  if (error) throw new Error(`No se pudo leer la consulta ${id}: ${error.message}`);
+  return data ? rowToConsultation(data as ConsultationRow) : undefined;
+}
+
+export async function createConsultation(consultation: Consultation): Promise<Consultation> {
+  const { data, error } = await supabaseAdmin
+    .from("consultations")
+    .insert(consultationToInsertRow(consultation))
+    .select("*")
+    .single();
+
+  if (error || !data) throw new Error(`No se pudo crear la consulta: ${error?.message ?? "sin datos"}`);
+  return rowToConsultation(data as ConsultationRow);
+}
+
+export async function updateConsultation(
+  id: string,
+  patch: Partial<Consultation>
+): Promise<Consultation | undefined> {
+  const { data, error } = await supabaseAdmin
+    .from("consultations")
+    .update(partialConsultationToRow(patch))
+    .eq("id", id)
+    .select("*")
+    .maybeSingle();
+
+  if (error) throw new Error(`No se pudo actualizar la consulta ${id}: ${error.message}`);
+  return data ? rowToConsultation(data as ConsultationRow) : undefined;
 }
 
 // ---- Documentos ----
-export function addDocumentToConsultation(consultationId: string, doc: DocumentFile) {
-  const consultation = getConsultation(consultationId);
+// Los documentos viven dentro de la columna jsonb `documentos` de la
+// consulta (igual que en el modelo anterior). Con un solo médico y bajo
+// volumen de escrituras concurrentes, hacer read-modify-write acá es
+// simple y suficiente; si en algún momento hay alta concurrencia real,
+// esto se puede mover a una tabla `documents` aparte con su propio FK.
+
+export async function addDocumentToConsultation(
+  consultationId: string,
+  doc: DocumentFile
+): Promise<DocumentFile | undefined> {
+  const consultation = await getConsultation(consultationId);
   if (!consultation) return undefined;
-  consultation.documentos.push(doc);
-  persist();
-  return doc;
+
+  const documentos = [...consultation.documentos, doc];
+  const updated = await updateConsultation(consultationId, { documentos });
+  return updated ? doc : undefined;
 }
 
-export function markDocumentSent(consultationId: string, documentId: string) {
-  const consultation = getConsultation(consultationId);
+export async function markDocumentSent(
+  consultationId: string,
+  documentId: string
+): Promise<DocumentFile | undefined> {
+  const consultation = await getConsultation(consultationId);
   if (!consultation) return undefined;
+
   const doc = consultation.documentos.find((d) => d.id === documentId);
   if (!doc) return undefined;
-  doc.enviado = true;
-  doc.enviadoEn = new Date().toISOString();
-  persist();
-  return doc;
-}
 
-export function genId(prefix: string) {
-  return `${prefix}_${Math.random().toString(36).slice(2, 10)}${Date.now().toString(36)}`;
-}
-
-export function genToken() {
-  // token largo, no predecible, para acceso a documentos sin exponer datos sensibles en la URL
-  return Array.from({ length: 4 }, () => Math.random().toString(36).slice(2, 10)).join("");
+  const documentos = consultation.documentos.map((d) =>
+    d.id === documentId ? { ...d, enviado: true, enviadoEn: new Date().toISOString() } : d
+  );
+  const updated = await updateConsultation(consultationId, { documentos });
+  return updated ? updated.documentos.find((d) => d.id === documentId) : undefined;
 }
