@@ -17,9 +17,16 @@ export async function GET(req: Request) {
       consultations = consultations.filter((c) => c.estado === estado);
     }
     return NextResponse.json(consultations);
-  } catch (error) {
-    return errorDeServidor(error, "No se pudieron cargar las consultas.");
-  }
+ } catch (error) {
+  console.error("ERROR CREANDO CONSULTA:", error);
+  return NextResponse.json(
+    {
+      error: "No se pudo crear la consulta.",
+      detalle: error instanceof Error ? error.message : String(error),
+    },
+    { status: 500 }
+  );
+}
 }
 
 export async function POST(req: Request) {
