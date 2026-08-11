@@ -45,7 +45,7 @@ export const doctorProfile: DoctorProfile = {
     secundario: "#163A63",
   },
   consultaOnline: {
-    precio: 30000,
+    precio: 100,
     duracionMinutos: 15,
   },
   // Sala fija de Google Meet donde se hacen todas las consultas online.
