@@ -2,31 +2,419 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ========================================
+   VARIABLES DE COLOR - PALETA PREMIUM
+   ======================================== */
+:root {
+  --color-medical: #1B6E5C;      /* Verde menta médico */
+  --color-warm: #F4EFE4;          /* Arena cálida */
+  --color-navy: #2C3E50;          /* Azul marino profundo */
+  --color-coral: #E8837A;         /* Coral suave */
+  --color-text: #172033;          /* Ink */
+  --color-muted: #7A8499;         /* Muted secondary */
+  --color-line: #E5E9F0;          /* Líneas finas */
+  --color-skyfaint: #E8EFF5;      /* Cielo muy suave */
+  --color-bg-soft: #F9FAFB;       /* Background más blanco */
+}
+
+/* ========================================
+   BASE
+   ======================================== */
 html {
   scroll-behavior: smooth;
 }
 
 body {
   background-color: #ffffff;
-  color: #172033;
+  color: var(--color-text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Helvetica Neue", sans-serif;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
+/* ========================================
+   TIPOGRAFÍA
+   ======================================== */
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+a {
+  color: var(--color-medical);
+  transition: color 0.2s ease;
+}
+
+a:hover {
+  color: var(--color-navy);
+}
+
+/* ========================================
+   BOTONES
+   ======================================== */
 .btn-primary {
-  @apply inline-flex items-center justify-center rounded-full bg-navy px-6 py-3.5 text-sm font-medium text-white transition-all hover:bg-navy-light active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none;
+  @apply inline-flex items-center justify-center gap-2 rounded-full 
+    bg-[#1B6E5C] px-6 py-3.5 text-sm font-semibold text-white 
+    transition-all duration-300 ease-out
+    hover:bg-[#155245] hover:shadow-lg hover:-translate-y-0.5
+    active:scale-[0.98] active:shadow-md
+    disabled:opacity-50 disabled:pointer-events-none disabled:shadow-none
+    focus:outline-none focus:ring-2 focus:ring-[#1B6E5C]/30;
 }
 
 .btn-secondary {
-  @apply inline-flex items-center justify-center rounded-full border border-line bg-white px-6 py-3.5 text-sm font-medium text-ink transition-all hover:border-navy/40 hover:bg-bgsoft active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none;
+  @apply inline-flex items-center justify-center gap-2 rounded-full 
+    border-2 border-[#E5E9F0] bg-white px-6 py-3.5 text-sm font-semibold text-[#2C3E50]
+    transition-all duration-300 ease-out
+    hover:border-[#1B6E5C] hover:bg-[#F4EFE4] hover:shadow-md hover:-translate-y-0.5
+    active:scale-[0.98]
+    disabled:opacity-50 disabled:pointer-events-none
+    focus:outline-none focus:ring-2 focus:ring-[#1B6E5C]/30;
 }
 
+.btn-ghost {
+  @apply inline-flex items-center justify-center gap-2
+    text-sm font-semibold text-[#2C3E50]
+    transition-colors duration-200
+    hover:text-[#1B6E5C] hover:bg-[#F4EFE4]/50 rounded-lg px-3 py-2;
+}
+
+.btn-sm {
+  @apply px-4 py-2.5 text-xs font-semibold;
+}
+
+/* ========================================
+   TARJETAS (CARDS)
+   ======================================== */
 .card {
-  @apply rounded-xl2 border border-line bg-white p-6 shadow-card;
+  @apply rounded-2xl border border-[#E5E9F0] bg-white p-6 
+    shadow-[0_2px_12px_rgba(0,0,0,0.05)]
+    transition-all duration-300 ease-out
+    hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] hover:border-[#1B6E5C]/30;
 }
 
-.badge-live {
-  @apply inline-flex items-center gap-2 rounded-full bg-skyfaint px-4 py-2 text-sm font-medium text-navy;
+.card-hover {
+  @apply card hover:-translate-y-1;
 }
 
+/* ========================================
+   INPUTS & FORMS
+   ======================================== */
 .input-field {
-  @apply w-full rounded-xl border border-line bg-white px-4 py-3 text-ink placeholder:text-muted/70 outline-none transition-colors focus:border-navy;
+  @apply w-full rounded-xl border-2 border-[#E5E9F0] bg-white 
+    px-4 py-3 text-[#172033] 
+    font-normal leading-normal
+    outline-none transition-all duration-200
+    focus:border-[#1B6E5C] focus:shadow-[0_0_0_3px_rgba(27,110,92,0.1)]
+    disabled:bg-[#F4EFE4] disabled:opacity-60 disabled:cursor-not-allowed
+    placeholder:text-[#7A8499]/60;
+}
+
+.input-field::placeholder {
+  color: rgb(122 132 153 / 0.6);
+}
+
+.textarea-field {
+  @apply input-field font-normal resize-y;
+}
+
+.select-field {
+  @apply input-field appearance-none bg-white pr-10 cursor-pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%232C3E50' d='M1 4l5 4 5-4'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  padding-right: 2.5rem;
+}
+
+/* ========================================
+   BADGES
+   ======================================== */
+.badge {
+  @apply inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold;
+}
+
+.badge-primary {
+  @apply badge bg-[#D4F1E8] text-[#1B6E5C];
+}
+
+.badge-secondary {
+  @apply badge bg-[#E8EFF5] text-[#2C3E50];
+}
+
+.badge-muted {
+  @apply badge bg-[#F4EFE4] text-[#7A8499];
+}
+
+.badge-dot {
+  @apply relative h-2 w-2 rounded-full bg-current inline-block;
+}
+
+/* ========================================
+   DIVIDERS
+   ======================================== */
+.divider {
+  @apply border-t border-[#E5E9F0];
+}
+
+.divider-dashed {
+  @apply border-t-2 border-dashed border-[#E5E9F0];
+}
+
+/* ========================================
+   ALERTAS
+   ======================================== */
+.alert {
+  @apply rounded-xl border-2 px-4 py-3 text-sm;
+}
+
+.alert-success {
+  @apply alert border-green-200 bg-green-50 text-green-800;
+}
+
+.alert-error {
+  @apply alert border-red-200 bg-red-50 text-red-800;
+}
+
+.alert-warning {
+  @apply alert border-amber-200 bg-amber-50 text-amber-800;
+}
+
+.alert-info {
+  @apply alert border-blue-200 bg-blue-50 text-blue-800;
+}
+
+/* ========================================
+   ANIMACIONES CUSTOM
+   ======================================== */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes pulseSoft {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.animate-slideInLeft {
+  animation: slideInLeft 0.5s ease-out;
+}
+
+.animate-slideInRight {
+  animation: slideInRight 0.5s ease-out;
+}
+
+.animate-pulseSoft {
+  animation: pulseSoft 2s ease-in-out infinite;
+}
+
+/* ========================================
+   LOADING SKELETON
+   ======================================== */
+.skeleton {
+  @apply animate-pulse bg-[#E5E9F0];
+}
+
+.skeleton-text {
+  @apply skeleton h-4 rounded;
+}
+
+.skeleton-avatar {
+  @apply skeleton h-10 w-10 rounded-full;
+}
+
+.skeleton-card {
+  @apply skeleton h-48 rounded-2xl;
+}
+
+/* ========================================
+   UTILIDADES DE SOMBRAS
+   ======================================== */
+.shadow-soft {
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+}
+
+.shadow-card {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+}
+
+.shadow-hover {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+/* ========================================
+   UTILIDADES DE TEXTO
+   ======================================== */
+.text-ink {
+  color: var(--color-text);
+}
+
+.text-muted {
+  color: var(--color-muted);
+}
+
+.text-medical {
+  color: var(--color-medical);
+}
+
+.font-display {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  letter-spacing: -0.02em;
+}
+
+/* ========================================
+   UTILIDADES DE BACKGROUND
+   ======================================== */
+.bg-warm {
+  background-color: var(--color-warm);
+}
+
+.bg-navy {
+  background-color: var(--color-navy);
+}
+
+.bg-skyfaint {
+  background-color: var(--color-skyfaint);
+}
+
+.bg-medical-50 {
+  background-color: rgba(27, 110, 92, 0.05);
+}
+
+/* ========================================
+   UTILIDADES DE BORDER
+   ======================================== */
+.border-line {
+  border-color: var(--color-line);
+}
+
+.border-medical {
+  border-color: var(--color-medical);
+}
+
+/* ========================================
+   GRID & LAYOUT
+   ======================================== */
+.container-max {
+  @apply mx-auto max-w-5xl px-5;
+}
+
+.container-small {
+  @apply mx-auto max-w-3xl px-5;
+}
+
+.section-spacing {
+  @apply py-16 md:py-20;
+}
+
+/* ========================================
+   HOVER EFFECTS
+   ======================================== */
+.hover-lift {
+  @apply transition-all duration-300 hover:-translate-y-1 hover:shadow-lg;
+}
+
+.hover-glow {
+  @apply transition-all duration-300 hover:shadow-[0_0_20px_rgba(27,110,92,0.2)];
+}
+
+/* ========================================
+   RESPONSIVE HELPERS
+   ======================================== */
+@media (max-width: 640px) {
+  .hide-mobile {
+    @apply hidden;
+  }
+}
+
+@media (min-width: 641px) {
+  .show-mobile {
+    @apply hidden;
+  }
+}
+
+/* ========================================
+   ACCESIBILIDAD
+   ======================================== */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* ========================================
+   IMÁGENES
+   ======================================== */
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* ========================================
+   ESTILOS DE CÓDIGO
+   ======================================== */
+code {
+  @apply rounded bg-[#F4EFE4] px-1.5 py-0.5 font-mono text-sm text-[#E8837A];
+}
+
+pre {
+  @apply overflow-x-auto rounded-xl bg-[#2C3E50] p-4 text-sm text-white;
+}
+
+pre code {
+  @apply bg-transparent p-0 text-white;
 }

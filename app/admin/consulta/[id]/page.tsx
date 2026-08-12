@@ -235,6 +235,7 @@ export default function AdminConsultaDetalle({ params }: { params: { id: string 
         <CertificadoModal
           consultationId={c.id}
           pacienteNombre={c.paciente.nombre}
+          pacienteEmail={c.paciente.email}
           onCerrar={() => setMostrarCertificado(false)}
           onCreado={() => {
             setMostrarCertificado(false);
