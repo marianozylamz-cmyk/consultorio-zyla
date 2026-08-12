@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Consultation, AvailabilityConfig, Weekday } from "@/types";
 import { doctorProfile } from "@/data/doctorProfile";
 import { IconBell } from "@/components/icons";
+import { estaDentroDelHorarioHabitual } from "@/lib/availability";
 
 const DIAS: { key: Weekday; label: string }[] = [
   { key: "lun", label: "Lunes" },
@@ -152,29 +153,44 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* ESTADO ACTUAL */}
-        {availability && (
-          <div className="card">
-            <div className="mb-3 flex items-center justify-between">
-              <span className="text-xs font-semibold uppercase tracking-wide text-muted">Estado actual</span>
-              <button
-                className="text-xs text-muted underline-offset-2 hover:text-ink hover:underline"
-                onClick={() => setMostrarConfig((v) => !v)}
-              >
-                {mostrarConfig ? "Ocultar configuración" : "Configurar horarios"}
-              </button>
-            </div>
-            <div className="mb-4 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className={`h-2.5 w-2.5 rounded-full ${availability.activo ? "bg-emerald-500" : "bg-slate-300"}`} />
-                <span className="text-lg font-medium text-ink">
-                  {availability.activo ? "Disponible" : "No disponible"}
-                </span>
+     {/* ESTADO ACTUAL */}
+        {availability && (() => {
+          const dentroDeHorario = estaDentroDelHorarioHabitual(availability, new Date());
+          return (
+            <div className="card">
+              <div className="mb-3 flex items-center justify-between">
+                <span className="text-xs font-semibold uppercase tracking-wide text-muted">Estado actual</span>
+                <button
+                  className="text-xs text-muted underline-offset-2 hover:text-ink hover:underline"
+                  onClick={() => setMostrarConfig((v) => !v)}
+                >
+                  {mostrarConfig ? "Ocultar configuración" : "Configurar horarios"}
+                </button>
               </div>
-              <button className="btn-secondary !py-2 !px-4 text-xs" onClick={toggleActivo}>
-                {availability.activo ? "Desactivar disponibilidad" : "Activar disponibilidad"}
-              </button>
-            </div>
+
+              {dentroDeHorario ? (
+                // Dentro del horario fijo de hoy: ya está cubierto por la
+                // agenda normal. El interruptor manual no aplica acá, así
+                // que ni se muestra — evita confundirlo con la agenda.
+                <div className="mb-4 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
+                    <span className="text-lg font-medium text-ink">Disponible por horario habitual</span>
+                  </div>
+                </div>
+              ) : (
+                <div className="mb-4 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className={`h-2.5 w-2.5 rounded-full ${availability.activo ? "bg-emerald-500" : "bg-slate-300"}`} />
+                    <span className="text-lg font-medium text-ink">
+                      {availability.activo ? "Atendiendo fuera de horario" : "No disponible"}
+                    </span>
+                  </div>
+                  <button className="btn-secondary !py-2 !px-4 text-xs" onClick={toggleActivo}>
+                    {availability.activo ? "Desactivar atención especial" : "Atender fuera de horario"}
+                  </button>
+                </div>
+              )}
 
             {mostrarConfig && (
               <div className="animate-fadeIn space-y-2 border-t border-line pt-4">
@@ -209,9 +225,10 @@ export default function AdminDashboard() {
                   );
                 })}
               </div>
-            )}
-          </div>
-        )}
+          )}
+            </div>
+          );
+        })()}
 
         {/* CONSULTAS DE HOY */}
         <div>

@@ -99,6 +99,16 @@ export default function ConsultaPage() {
     setStep("checkout");
   }
 
+ async function refrescarHorariosDelDia() {
+    if (!fechaSeleccionada) return;
+    try {
+      const r = await fetch(`/api/availability?fecha=${fechaSeleccionada}`, { cache: "no-store" });
+      setAvailability(await r.json());
+    } catch {
+      // si falla el refresco no es crítico, el usuario puede reintentar el paso
+    }
+  }
+
   async function iniciarPago() {
     if (!horaElegida) return;
     setEnviando(true);
@@ -116,6 +126,24 @@ export default function ConsultaPage() {
             hora: horaElegida,
           }),
         });
+
+        if (createRes.status === 409) {
+          // Otro paciente reservó este horario primero.
+          setErrorPago("Ese horario se acaba de ocupar. Elegí otro, por favor.");
+          setHoraElegida(null);
+          setStep("horario");
+          await refrescarHorariosDelDia();
+          setEnviando(false);
+          return;
+        }
+
+        if (!createRes.ok) {
+          const errJson = await createRes.json().catch(() => ({}));
+          setErrorPago(errJson.error ?? "No pudimos crear la consulta. Probá de nuevo.");
+          setEnviando(false);
+          return;
+        }
+
         const consultation = await createRes.json();
         id = consultation.id;
         setConsultationId(id);

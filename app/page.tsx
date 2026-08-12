@@ -8,6 +8,7 @@ import { HowItWorks } from '@/components/HowItWorks';
 import { ServiciosGrid } from '@/components/ServiciosGrid';
 import { IconPin, IconPhone, IconClock } from '@/components/icons';
 import { doctorProfile } from '@/data/doctorProfile';
+import { HorarioResumen } from '@/components/HorarioResumen';
 
 export default function LandingPage() {
   const d = doctorProfile;
@@ -95,9 +96,11 @@ export default function LandingPage() {
             </div>
 
             <div className="border-t border-[#E5E9F0] pt-6 grid grid-cols-2 gap-6">
-              <div>
-                <p className="text-xs font-semibold uppercase text-[#7A8499] mb-2">Horario</p>
-                <p className="text-xl font-bold text-[#1B6E5C]">17:00 a 19:00 hs.</p>
+ <div>
+                <p className="text-xs font-semibold uppercase text-[#7A8499] mb-2">
+                  Horario
+                </p>
+                <HorarioResumen />
               </div>
               <div>
                 <p className="text-xs font-semibold uppercase text-[#7A8499] mb-2">Tarifa</p>

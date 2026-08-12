@@ -69,6 +69,63 @@ export async function setAvailability(config: AvailabilityConfig): Promise<Avail
   return rowToAvailability(data as AvailabilityRow);
 }
 
+// ---- Turnos reservados ----
+// Esta es la capa que garantiza que dos pacientes no puedan
+// quedarse con el mismo (doctor, fecha, hora). El unique constraint
+// de la tabla es la única fuente real de esa garantía — todo lo
+// demás (slots calculados, UI) es solo para mostrar disponibilidad,
+// nunca para decidir si un turno "es válido".
+
+export class SlotOcupadoError extends Error {
+  constructor() {
+    super("Ese horario ya fue reservado por otro paciente.");
+    this.name = "SlotOcupadoError";
+  }
+}
+
+async function reservarSlot(
+  doctorId: string,
+  fecha: string,
+  hora: string,
+  consultationId: string
+): Promise<void> {
+  const { error } = await supabaseAdmin.from("turnos_reservados").insert({
+    doctor_id: doctorId,
+    fecha,
+    hora,
+    consultation_id: consultationId,
+  });
+
+  if (error) {
+    // 23505 = unique_violation: alguien reservó este (doctor, fecha, hora) primero.
+    if (error.code === "23505") {
+      throw new SlotOcupadoError();
+    }
+    throw new Error(`No se pudo reservar el turno: ${error.message}`);
+  }
+}
+
+async function liberarSlot(consultationId: string): Promise<void> {
+  const { error } = await supabaseAdmin
+    .from("turnos_reservados")
+    .delete()
+    .eq("consultation_id", consultationId);
+
+  if (error) {
+    throw new Error(`No se pudo liberar el turno: ${error.message}`);
+  }
+}
+
+/**
+ * Libera el turno de una consulta cuando el pago se rechaza, expira o se
+ * cancela — para que el horario vuelva a aparecer disponible para otros
+ * pacientes. Se puede llamar más de una vez sin problema (delete de un
+ * consultation_id que ya no existe simplemente no borra nada).
+ */
+export async function liberarTurnoDeConsulta(consultationId: string): Promise<void> {
+  await liberarSlot(consultationId);
+}
+
 // ---- Consultas ----
 // Ver supabase/migration.sql para el esquema completo asumido de esta tabla.
 
@@ -164,6 +221,36 @@ export async function createConsultation(consultation: Consultation): Promise<Co
 
   if (error || !data) throw new Error(`No se pudo crear la consulta: ${error?.message ?? "sin datos"}`);
   return rowToConsultation(data as ConsultationRow);
+}
+
+/**
+ * Punto de entrada para crear una consulta CON reserva atómica del turno.
+ * Este es el que hay que usar desde el endpoint POST /api/consultations —
+ * `createConsultation` a secas queda como building block interno.
+ *
+ * Orden:
+ *  1. Reservar el (doctor, fecha, hora) en turnos_reservados.
+ *     Si ya está tomado, tira SlotOcupadoError y no se crea nada.
+ *  2. Crear la fila de consultation.
+ *     Si esto falla por lo que sea, se libera el turno reservado
+ *     en el paso 1 (rollback manual, ya que son dos tablas separadas).
+ */
+export async function createConsultationConReserva(consultation: Consultation): Promise<Consultation> {
+  await reservarSlot(consultation.doctorId, consultation.fecha, consultation.hora, consultation.id);
+
+  try {
+    return await createConsultation(consultation);
+  } catch (error) {
+    await liberarSlot(consultation.id).catch(() => {
+      // Si esto también falla, queda un turno reservado "fantasma" sin
+      // consulta asociada. Hay que revisarlo a mano en Supabase — pero
+      // no debería pasar salvo un corte de conexión justo en el medio.
+      console.error(
+        `No se pudo liberar el turno reservado tras un error creando la consulta ${consultation.id}`
+      );
+    });
+    throw error;
+  }
 }
 
 export async function updateConsultation(

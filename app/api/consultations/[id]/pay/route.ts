@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getConsultation, updateConsultation } from "@/lib/store";
+import { getConsultation, liberarTurnoDeConsulta, updateConsultation } from "@/lib/store";
 import { errorDeServidor } from "@/lib/apiErrors";
 import { paymentService } from "@/services/paymentService";
 import { notificationService } from "@/services/notificationService";
@@ -24,6 +24,12 @@ export async function POST(req: Request, { params }: { params: { id: string } })
         estado: "rechazada",
         pago: { estado: "rechazado", metodo: "mock" },
       });
+
+      // El pago se rechazó: liberamos el turno para que otro paciente
+      // pueda tomarlo. Sin esto, un horario queda bloqueado para
+      // siempre cada vez que un pago no se aprueba.
+      await liberarTurnoDeConsulta(consultation.id);
+
       return NextResponse.json({ resultado, consultation: updated });
     }
 
