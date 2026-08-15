@@ -24,14 +24,14 @@ import {
 // Fila única (id=1) en la tabla `availability`, ya creada de antes.
 
 interface AvailabilityRow {
-  activo: boolean;
+  activo_desde: string | null;
   horario_semanal: Record<Weekday, AvailabilityConfig["horarioSemanal"][Weekday]>;
   excepciones: AvailabilityConfig["excepciones"];
 }
 
 function rowToAvailability(row: AvailabilityRow): AvailabilityConfig {
   return {
-    activo: row.activo,
+    activoDesde: row.activo_desde,
     horarioSemanal: row.horario_semanal,
     excepciones: row.excepciones ?? [],
   };
@@ -40,7 +40,7 @@ function rowToAvailability(row: AvailabilityRow): AvailabilityConfig {
 export async function getAvailability(): Promise<AvailabilityConfig> {
   const { data, error } = await supabaseAdmin
     .from("availability")
-    .select("activo, horario_semanal, excepciones")
+    .select("activo_desde, horario_semanal, excepciones")
     .eq("id", 1)
     .single();
 
@@ -54,13 +54,13 @@ export async function setAvailability(config: AvailabilityConfig): Promise<Avail
   const { data, error } = await supabaseAdmin
     .from("availability")
     .update({
-      activo: config.activo,
+      activo_desde: config.activoDesde,
       horario_semanal: config.horarioSemanal,
       excepciones: config.excepciones,
       updated_at: new Date().toISOString(),
     })
     .eq("id", 1)
-    .select("activo, horario_semanal, excepciones")
+    .select("activo_desde, horario_semanal, excepciones")
     .single();
 
   if (error || !data) {
@@ -124,6 +124,38 @@ async function liberarSlot(consultationId: string): Promise<void> {
  */
 export async function liberarTurnoDeConsulta(consultationId: string): Promise<void> {
   await liberarSlot(consultationId);
+}
+
+/**
+ * Horas ya reservadas (turnos_reservados) para un doctor, agrupadas por
+ * fecha, dentro de un conjunto de fechas dado. Se usa para no mostrar como
+ * disponibles horarios que ya tiene otro paciente — lib/availability.ts es
+ * puro y no sabe nada de esto a propósito; acá vive la única consulta real
+ * a la tabla que es la fuente de verdad de "ocupado".
+ */
+export async function getHorasReservadasEnRango(
+  doctorId: string,
+  fechas: string[]
+): Promise<Map<string, Set<string>>> {
+  const porFecha = new Map<string, Set<string>>();
+  if (fechas.length === 0) return porFecha;
+
+  const { data, error } = await supabaseAdmin
+    .from("turnos_reservados")
+    .select("fecha, hora")
+    .eq("doctor_id", doctorId)
+    .in("fecha", fechas);
+
+  if (error) {
+    throw new Error(`No se pudieron leer los turnos reservados: ${error.message}`);
+  }
+
+  for (const fila of (data as { fecha: string; hora: string }[]) ?? []) {
+    const horas = porFecha.get(fila.fecha) ?? new Set<string>();
+    horas.add(fila.hora);
+    porFecha.set(fila.fecha, horas);
+  }
+  return porFecha;
 }
 
 // ---- Consultas ----

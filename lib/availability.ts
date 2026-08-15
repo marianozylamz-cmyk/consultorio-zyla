@@ -9,15 +9,22 @@ import { AvailabilityConfig, Weekday } from "@/types";
 //    Surge de horarioSemanal + excepciones.
 //    Define cuándo se pueden reservar turnos.
 //
-// 2. ATENCIÓN INMEDIATA (interruptor manual)
-//    Surge de config.activo, PERO solo tiene efecto FUERA del
-//    horario fijo de hoy. Es para situaciones excepcionales:
-//    el médico tiene unos minutos libres fuera de su horario
-//    habitual y quiere aparecer disponible por si alguien llama.
+// 2. ATENCIÓN INMEDIATA (interruptor manual "Atender ahora")
+//    Surge de config.activoDesde, PERO solo tiene efecto FUERA del
+//    horario fijo de hoy. Pensado para casos especiales/urgencias:
+//    el médico quiere atender fuera de su horario habitual (incluso
+//    un día marcado como no laborable) por un rato puntual.
 //
 //    Si estamos DENTRO del horario fijo (ej: martes 17 a 19),
 //    ya está cubierto por la agenda normal — el interruptor
 //    manual no aplica y se ignora.
+//
+//    activoDesde guarda la fecha (ISO, Argentina) en que se activó,
+//    no un booleano suelto: solo cuenta como "prendido" si esa fecha
+//    es HOY. Así el interruptor nunca queda pegado de un día anterior
+//    si el médico se olvida de apagarlo — a la medianoche deja de
+//    tener efecto solo, sin necesidad de ningún proceso en segundo
+//    plano que lo apague.
 //
 // Todo se calcula en horario de Argentina.
 // ==========================================================
@@ -109,7 +116,7 @@ function minutesToTime(mins: number): string {
  * - excepciones puntuales
  *
  * IMPORTANTE:
- * Esto NO mira config.activo.
+ * Esto NO mira activoDesde.
  *
  * Por lo tanto, apagar "disponibilidad ahora" NO elimina
  * los turnos normales.
@@ -151,7 +158,7 @@ export function getEffectiveScheduleForDate(
  * ¿La hora actual cae dentro del horario FIJO de hoy
  * (horarioSemanal + excepciones)?
  *
- * Se usa para decidir si el interruptor manual (config.activo)
+ * Se usa para decidir si el interruptor manual "Atender ahora"
  * tiene algún efecto o no: dentro del horario fijo, la agenda
  * normal ya cubre la disponibilidad, así que el interruptor
  * queda fuera de juego.
@@ -174,17 +181,32 @@ export function estaDentroDelHorarioHabitual(
 }
 
 /**
+ * ¿La atención especial ("Atender ahora") está vigente en este momento?
+ *
+ * Solo cuenta como prendida si se activó HOY (fecha de Argentina). Si se
+ * activó ayer y nadie la apagó a mano, ya no tiene efecto — se "vence"
+ * sola a la medianoche sin depender de ningún proceso externo.
+ */
+export function esAtencionEspecialHoy(
+  config: AvailabilityConfig,
+  now: Date = new Date()
+): boolean {
+  return config.activoDesde === toISODate(now);
+}
+
+/**
  * Estado de ATENCIÓN INMEDIATA.
  *
  * Regla:
  *
  * - Si estamos DENTRO del horario fijo de hoy, ya está cubierto
  *   por la agenda normal: disponible = true siempre, sin importar
- *   config.activo. El interruptor manual no tiene efecto acá.
+ *   la atención especial. El interruptor manual no tiene efecto acá.
  *
  * - Si estamos FUERA del horario fijo de hoy, ahí sí decide
- *   config.activo: es el interruptor pensado para que el médico
- *   avise que atiende por fuera de su horario habitual.
+ *   esAtencionEspecialHoy: es el interruptor pensado para que el
+ *   médico avise que atiende por fuera de su horario habitual
+ *   (incluso un día marcado como no laborable), solo por hoy.
  */
 export function isAvailableNow(
   config: AvailabilityConfig,
@@ -205,7 +227,7 @@ export function isAvailableNow(
   }
 
   return {
-    disponible: config.activo,
+    disponible: esAtencionEspecialHoy(config, now),
     horarioHoy: null,
     dentroDeHorarioHabitual: false,
   };
@@ -221,7 +243,7 @@ export function isAvailableNow(
  * - si es hoy, elimina horarios que ya pasaron
  *
  * IMPORTANTE:
- * config.activo NO participa.
+ * activoDesde NO participa.
  *
  * Aunque el médico no esté atendiendo AHORA, los turnos
  * normales siguen disponibles.
@@ -229,7 +251,8 @@ export function isAvailableNow(
 export function getSlotsForDate(
   config: AvailabilityConfig,
   date: Date,
-  intervalMinutes = 30
+  intervalMinutes = 30,
+  now: Date = new Date()
 ): string[] {
   const schedule = getEffectiveScheduleForDate(config, date);
 
@@ -239,8 +262,6 @@ export function getSlotsForDate(
 
   const startMins = timeToMinutes(schedule.inicio);
   const endMins = timeToMinutes(schedule.fin);
-
-  const now = new Date();
 
   const isToday = toISODate(date) === toISODate(now);
 
@@ -258,4 +279,37 @@ export function getSlotsForDate(
   }
 
   return slots;
+}
+
+/**
+ * ¿"fin" es un horario válido posterior a "inicio"? Compara strings
+ * "HH:MM" con padding fijo, por lo que la comparación lexicográfica
+ * alcanza sin parsear. Se usa para rechazar rangos invertidos o vacíos
+ * (ej. alguien tipeó 19:00 a 09:00) antes de que produzcan silenciosamente
+ * cero turnos sin ninguna explicación.
+ */
+export function rangoHorarioValido(inicio: string, fin: string): boolean {
+  return fin > inicio;
+}
+
+/** Hora actual "HH:MM" en horario de Argentina — para uso en el cliente. */
+export function horaActualArgentina(now: Date = new Date()): string {
+  return minutesToTime(partesEnArgentina(now).minutosDelDia);
+}
+
+/**
+ * Formatea una fecha ISO ("2026-08-17") como "Lunes 17 de agosto", siempre
+ * en horario de Argentina — sin importar el timezone del dispositivo que
+ * la esté mostrando. Reemplaza implementaciones locales equivalentes que
+ * había duplicadas (y, en el caso del cliente de reserva, rotas por
+ * depender del timezone del navegador) en varias pantallas.
+ */
+export function formatFechaLargaAR(iso: string): string {
+  const texto = fechaDesdeISO(iso).toLocaleDateString("es-AR", {
+    timeZone: TIMEZONE,
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  });
+  return texto.charAt(0).toUpperCase() + texto.slice(1);
 }

@@ -6,9 +6,10 @@ import { AvailabilityStatus } from '@/components/AvailabilityStatus';
 import { PulseDivider } from '@/components/PulseDivider';
 import { HowItWorks } from '@/components/HowItWorks';
 import { ServiciosGrid } from '@/components/ServiciosGrid';
-import { IconPin, IconPhone, IconClock } from '@/components/icons';
+import { IconPin, IconPhone, IconClock, IconWhatsApp } from '@/components/icons';
 import { doctorProfile } from '@/data/doctorProfile';
 import { HorarioResumen } from '@/components/HorarioResumen';
+import { linkWhatsAppConsultorio } from '@/lib/whatsapp';
 
 export default function LandingPage() {
   const d = doctorProfile;
@@ -40,7 +41,7 @@ export default function LandingPage() {
                 <IconPin className="h-4 w-4 text-[#1B6E5C] shrink-0" />
                 {d.ciudad}, {d.provincia}
               </p>
-              <p className="text-xs text-[#7A8499] mt-1">Disponible para consultas online</p>
+              <p className="text-xs text-muted mt-1">Disponible para consultas online</p>
             </div>
           </div>
 
@@ -58,7 +59,7 @@ export default function LandingPage() {
           </p>
 
           {/* Descripción */}
-          <p className="mt-6 max-w-2xl text-lg leading-relaxed text-[#7A8499] sm:mt-8 md:text-xl">
+          <p className="mt-6 max-w-2xl text-lg leading-relaxed text-muted sm:mt-8 md:text-xl">
             Consultas médicas online sin salir de casa. Desde tu dispositivo, en segundos, hablá
             cara a cara con un especialista en medicina clínica.
           </p>
@@ -84,10 +85,10 @@ export default function LandingPage() {
           >
             <div className="mb-6 flex items-center justify-between gap-4">
               <div>
-                <p className="text-xs font-bold uppercase tracking-widest text-[#7A8499] mb-2">
-                  💻 Consultas Online
+                <p className="text-xs font-bold uppercase tracking-widest text-muted mb-2">
+                  <span aria-hidden="true">💻</span> Consultas Online
                 </p>
-                <p className="text-sm text-[#7A8499]">Todos los días</p>
+                <p className="text-sm text-muted">Todos los días</p>
                 <p className="text-2xl font-bold text-[#2C3E50] mt-1">
                   {d.consultaOnline.duracionMinutos} minutos
                 </p>
@@ -97,13 +98,13 @@ export default function LandingPage() {
 
             <div className="border-t border-[#E5E9F0] pt-6 grid grid-cols-2 gap-6">
  <div>
-                <p className="text-xs font-semibold uppercase text-[#7A8499] mb-2">
+                <p className="text-xs font-semibold uppercase text-muted mb-2">
                   Horario
                 </p>
                 <HorarioResumen />
               </div>
               <div>
-                <p className="text-xs font-semibold uppercase text-[#7A8499] mb-2">Tarifa</p>
+                <p className="text-xs font-semibold uppercase text-muted mb-2">Tarifa</p>
                 <p className="text-3xl font-bold text-[#2C3E50]">${precioFormateado}</p>
               </div>
             </div>
@@ -126,7 +127,7 @@ export default function LandingPage() {
       {/* ===== SOBRE MÍ ===== */}
       <section id="sobre-mi" className="container-max section-spacing">
         <div className="max-w-2xl">
-          <p className="mb-2 text-xs font-bold uppercase tracking-widest text-[#7A8499]">
+          <p className="mb-2 text-xs font-bold uppercase tracking-widest text-muted">
             Quién te atiende
           </p>
           <h2 className="mb-6 text-3xl font-bold text-[#2C3E50] md:text-4xl">
@@ -143,7 +144,7 @@ export default function LandingPage() {
 
       {/* ===== CONSULTORIO PRESENCIAL ===== */}
       <section className="container-max section-spacing">
-        <p className="mb-2 text-xs font-bold uppercase tracking-widest text-[#7A8499]">
+        <p className="mb-2 text-xs font-bold uppercase tracking-widest text-muted">
           Atención presencial
         </p>
         <h2 className="mb-8 text-3xl font-bold text-[#2C3E50] md:text-4xl">
@@ -155,7 +156,7 @@ export default function LandingPage() {
             <div className="mb-2 text-lg font-bold text-[#2C3E50]">
               {d.consultorio.nombre}
             </div>
-            <div className="mb-4 flex items-start gap-2 text-[15px] text-[#7A8499]">
+            <div className="mb-4 flex items-start gap-2 text-[15px] text-muted">
               <IconPin className="h-5 w-5 text-[#1B6E5C] shrink-0 mt-0.5" />
               <span>{d.consultorio.direccion}</span>
             </div>
@@ -166,7 +167,7 @@ export default function LandingPage() {
           </div>
 
           <div className="card">
-            <p className="mb-4 text-xs font-bold uppercase tracking-widest text-[#7A8499]">
+            <p className="mb-4 text-xs font-bold uppercase tracking-widest text-muted">
               Contacto
             </p>
             <div className="space-y-3">
@@ -178,14 +179,12 @@ export default function LandingPage() {
                 <span className="font-semibold text-[#2C3E50]">{d.consultorio.telefono}</span>
               </a>
               <a
-                href={`https://wa.me/549${d.consultorio.whatsapp}`}
+                href={linkWhatsAppConsultorio('Hola, tengo una consulta.')}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-3 rounded-lg hover:bg-[#F4EFE4] p-2 transition-colors"
               >
-                <svg className="h-5 w-5 text-[#1B6E5C] shrink-0" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M17.6 6.4c-1.4-1.4-3.3-2.2-5.3-2.2-4.1 0-7.5 3.4-7.5 7.5 0 1.3.3 2.6.9 3.8L2.9 21.1l4.1-1.3c1.2.7 2.5 1 3.9 1h.1c4.1 0 7.5-3.4 7.5-7.5 0-2-0.8-3.9-2.2-5.3zm-5.3 11.9h-.1c-1.2 0-2.4-0.3-3.4-1l-0.2-0.1-2.3 0.7 0.7-2.2-0.2-0.2c-0.8-1.1-1.2-2.4-1.2-3.8 0-3.4 2.8-6.2 6.2-6.2 1.7 0 3.2 0.6 4.4 1.8 1.2 1.2 1.8 2.7 1.8 4.4 0 3.4-2.8 6.2-6.2 6.2zm3.5-4.7c-0.2-0.1-1.1-0.5-1.3-0.6-0.2-0.1-0.4-0.1-0.6 0.1-0.2 0.3-0.8 0.9-1 1.1-0.2 0.2-0.3 0.2-0.5 0.1-0.2-0.1-0.9-0.3-1.7-1-0.6-0.6-1-1.3-1.1-1.5-0.1-0.2 0-0.3 0.1-0.4 0.1-0.1 0.3-0.3 0.4-0.5 0.1-0.2 0.1-0.3 0.2-0.5 0.1-0.2 0-0.3-0.1-0.4 0-0.1-0.6-1.4-0.8-1.9-0.2-0.4-0.4-0.4-0.6-0.4h-0.5c-0.2 0-0.4 0.1-0.6 0.3-0.2 0.2-0.8 0.8-0.8 1.9s0.9 2.2 1 2.4c0.1 0.2 1.5 2.3 3.6 3.2 0.5 0.2 0.9 0.3 1.2 0.4 0.5 0.1 1 0.1 1.4 0 0.4-0.1 1.1-0.4 1.3-0.9 0.2-0.5 0.2-0.9 0.1-1 0-0.1-0.2-0.3-0.4-0.4z" />
-                </svg>
+                <IconWhatsApp className="h-5 w-5 text-[#1B6E5C] shrink-0" />
                 <span className="font-semibold text-[#2C3E50]">WhatsApp</span>
               </a>
             </div>
@@ -198,24 +197,24 @@ export default function LandingPage() {
         <div className="container-max">
           <div className="grid gap-8 sm:grid-cols-3 mb-8">
             <div>
-              <p className="text-xs font-bold uppercase tracking-widest text-[#7A8499] mb-3">
-                🕐 Rápido
+              <p className="text-xs font-bold uppercase tracking-widest text-muted mb-3">
+                <span aria-hidden="true">🕐</span> Rápido
               </p>
               <p className="text-sm text-[#172033]">
                 Reservá en segundos sin crear cuenta ni pasar por trámites.
               </p>
             </div>
             <div>
-              <p className="text-xs font-bold uppercase tracking-widest text-[#7A8499] mb-3">
-                🔒 Seguro
+              <p className="text-xs font-bold uppercase tracking-widest text-muted mb-3">
+                <span aria-hidden="true">🔒</span> Seguro
               </p>
               <p className="text-sm text-[#172033]">
                 Pago encriptado. Todos los medios. Tu privacidad protegida.
               </p>
             </div>
             <div>
-              <p className="text-xs font-bold uppercase tracking-widest text-[#7A8499] mb-3">
-                🎯 Profesional
+              <p className="text-xs font-bold uppercase tracking-widest text-muted mb-3">
+                <span aria-hidden="true">🎯</span> Profesional
               </p>
               <p className="text-sm text-[#172033]">
                 Médico especialista. Sala privada. Certificados incluidos.
@@ -227,9 +226,9 @@ export default function LandingPage() {
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="text-sm font-semibold text-[#2C3E50]">Dr. {d.nombre}</p>
-                <p className="text-xs text-[#7A8499]">{d.especialidad}</p>
+                <p className="text-xs text-muted">{d.especialidad}</p>
               </div>
-              <p className="text-xs text-[#7A8499]">
+              <p className="text-xs text-muted">
                 © {new Date().getFullYear()} Consultorio Online. Todos los derechos reservados.
               </p>
             </div>

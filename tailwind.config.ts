@@ -8,16 +8,28 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        // navy/skyfaint/bgsoft/line están alineados 1:1 con las variables
+        // --color-* de globals.css (el "Rediseño visual" las agregó como
+        // clases custom sin actualizar este archivo). Mientras convivan los
+        // dos sistemas, tienen que compartir el mismo valor — si no,
+        // cualquier variante con modificador de opacidad (ej. bg-navy/40,
+        // que Tailwind solo puede resolver contra un color de su propio
+        // theme, nunca contra una clase custom) termina usando un tono
+        // distinto al que se ve en el resto del sitio.
         navy: {
-          DEFAULT: "#0B1F3A",
-          light: "#163A63",
+          DEFAULT: "#2C3E50",
+          light: "#233240",
         },
-        skyfaint: "#EAF2F8",
+        skyfaint: "#E8EFF5",
         bg: "#FFFFFF",
-        bgsoft: "#F7F9FC",
+        bgsoft: "#F9FAFB",
         ink: "#172033",
-        muted: "#64748B",
-        line: "#E2E8F0",
+        // #6b7487 en vez del #64748B/#7A8499 anteriores: el que se
+        // renderizaba en la práctica (#7A8499, por la clase custom
+        // .text-muted de globals.css) daba 3.76:1 de contraste sobre
+        // blanco — no llega al 4.5:1 que exige WCAG AA para texto normal.
+        muted: "#6b7487",
+        line: "#E5E9F0",
       },
       fontFamily: {
         sans: [

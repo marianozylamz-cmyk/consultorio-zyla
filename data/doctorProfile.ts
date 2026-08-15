@@ -57,7 +57,7 @@ export const doctorProfile: DoctorProfile = {
 
 // Configuración de disponibilidad inicial: todos los días 17:00 a 19:00.
 export const defaultAvailability: AvailabilityConfig = {
-  activo: true,
+  activoDesde: null,
   horarioSemanal: {
     lun: { habilitado: true, inicio: "17:00", fin: "19:00" },
     mar: { habilitado: true, inicio: "17:00", fin: "19:00" },

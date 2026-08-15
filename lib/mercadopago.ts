@@ -58,6 +58,16 @@ export async function crearPreferenciaPago(input: CrearPreferenciaInput): Promis
         },
       ],
       external_reference: input.consultationId,
+      // Sin esto, Mercado Pago también ofrece pagar en efectivo (Rapipago,
+      // Pago Fácil) — un medio que puede tardar días en acreditarse. No
+      // tiene sentido para una consulta que se espera empezar en minutos:
+      // el paciente terminaría en la sala de espera sin que el pago se
+      // confirme nunca a tiempo. Tarjeta, débito y dinero en cuenta (todos
+      // acreditación instantánea) siguen disponibles, sin necesitar cuenta
+      // de Mercado Pago para pagar con tarjeta.
+      payment_methods: {
+        excluded_payment_types: [{ id: "ticket" }],
+      },
       back_urls: {
         success: `${baseUrl}/consulta/${input.consultationId}/espera`,
         pending: `${baseUrl}/consulta/${input.consultationId}/espera`,

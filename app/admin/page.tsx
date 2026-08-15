@@ -5,7 +5,8 @@ import Link from "next/link";
 import { Consultation, AvailabilityConfig, Weekday } from "@/types";
 import { doctorProfile } from "@/data/doctorProfile";
 import { IconBell } from "@/components/icons";
-import { estaDentroDelHorarioHabitual } from "@/lib/availability";
+import { esAtencionEspecialHoy, estaDentroDelHorarioHabitual, rangoHorarioValido, toISODate } from "@/lib/availability";
+import { ExcepcionesEditor } from "@/components/ExcepcionesEditor";
 
 const DIAS: { key: Weekday; label: string }[] = [
   { key: "lun", label: "Lunes" },
@@ -32,6 +33,9 @@ export default function AdminDashboard() {
   const [mostrarConfig, setMostrarConfig] = useState(false);
   const previousWaitingIds = useRef<Set<string>>(new Set());
   const [huboAlertaSonora, setHuboAlertaSonora] = useState(false);
+  const [cargando, setCargando] = useState(true);
+  const [errorPoll, setErrorPoll] = useState(false);
+  const [atendiendoId, setAtendiendoId] = useState<string | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -41,6 +45,12 @@ export default function AdminDashboard() {
           fetch("/api/consultations", { cache: "no-store" }),
           fetch("/api/admin/availability", { cache: "no-store" }),
         ]);
+
+        if (!cRes.ok || !aRes.ok) {
+          if (mounted) setErrorPoll(true);
+          return;
+        }
+
         const cJson: Consultation[] = await cRes.json();
         const aJson: AvailabilityConfig = await aRes.json();
 
@@ -55,9 +65,12 @@ export default function AdminDashboard() {
         if (mounted) {
           setConsultations(cJson);
           setAvailability(aJson);
+          setErrorPoll(false);
         }
       } catch {
-        // silencioso
+        if (mounted) setErrorPoll(true);
+      } finally {
+        if (mounted) setCargando(false);
       }
     }
     poll();
@@ -73,10 +86,24 @@ export default function AdminDashboard() {
 
   async function toggleActivo() {
     if (!availability) return;
+    const activoHoy = esAtencionEspecialHoy(availability, new Date());
+    // Al activar, guardamos la fecha de HOY (no un booleano suelto): así
+    // el interruptor deja de tener efecto solo a la medianoche si el
+    // médico se olvida de apagarlo — ver esAtencionEspecialHoy.
     const res = await fetch("/api/admin/availability", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ activo: !availability.activo }),
+      body: JSON.stringify({ activoDesde: activoHoy ? null : toISODate(new Date()) }),
+    });
+    setAvailability(await res.json());
+  }
+
+  async function actualizarExcepciones(excepciones: AvailabilityConfig["excepciones"]) {
+    if (!availability) return;
+    const res = await fetch("/api/admin/availability", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ excepciones }),
     });
     setAvailability(await res.json());
   }
@@ -99,13 +126,19 @@ export default function AdminDashboard() {
   }
 
   async function atender(id: string) {
-    const res = await fetch(`/api/consultations/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ estado: "lista" }),
-    });
-    const updated = await res.json();
-    setConsultations((prev) => prev.map((c) => (c.id === id ? updated : c)));
+    if (atendiendoId) return;
+    setAtendiendoId(id);
+    try {
+      const res = await fetch(`/api/consultations/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ estado: "lista" }),
+      });
+      const updated = await res.json();
+      setConsultations((prev) => prev.map((c) => (c.id === id ? updated : c)));
+    } finally {
+      setAtendiendoId(null);
+    }
   }
 
   return (
@@ -123,6 +156,13 @@ export default function AdminDashboard() {
       </div>
 
       <div className="mx-auto max-w-3xl space-y-6 px-5 py-8">
+        {errorPoll && (
+          <div className="animate-fadeIn rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            No se pudo actualizar la información — reintentando automáticamente. Si persiste, revisá tu
+            conexión.
+          </div>
+        )}
+
         {/* ALERTA NUEVA CONSULTA */}
         {esperando.length > 0 && (
           <div className="animate-fadeIn rounded-xl2 border border-amber-200 bg-amber-50 p-5">
@@ -144,8 +184,12 @@ export default function AdminDashboard() {
                       Consulta de {c.duracionMinutos} minutos · Pago confirmado: ${c.precio.toLocaleString("es-AR")}
                     </p>
                   </div>
-                  <button className="btn-primary shrink-0" onClick={() => atender(c.id)}>
-                    Atender
+                  <button
+                    className="btn-primary shrink-0"
+                    disabled={atendiendoId === c.id}
+                    onClick={() => atender(c.id)}
+                  >
+                    {atendiendoId === c.id ? "Atendiendo…" : "Atender"}
                   </button>
                 </div>
               ))}
@@ -156,6 +200,7 @@ export default function AdminDashboard() {
      {/* ESTADO ACTUAL */}
         {availability && (() => {
           const dentroDeHorario = estaDentroDelHorarioHabitual(availability, new Date());
+          const activoHoy = esAtencionEspecialHoy(availability, new Date());
           return (
             <div className="card">
               <div className="mb-3 flex items-center justify-between">
@@ -179,51 +224,66 @@ export default function AdminDashboard() {
                   </div>
                 </div>
               ) : (
-                <div className="mb-4 flex items-center justify-between">
+                <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex items-center gap-2">
-                    <span className={`h-2.5 w-2.5 rounded-full ${availability.activo ? "bg-emerald-500" : "bg-slate-300"}`} />
+                    <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${activoHoy ? "bg-emerald-500" : "bg-slate-300"}`} />
                     <span className="text-lg font-medium text-ink">
-                      {availability.activo ? "Atendiendo fuera de horario" : "No disponible"}
+                      {activoHoy ? "Atendiendo fuera de horario (solo hoy)" : "No disponible"}
                     </span>
                   </div>
-                  <button className="btn-secondary !py-2 !px-4 text-xs" onClick={toggleActivo}>
-                    {availability.activo ? "Desactivar atención especial" : "Atender fuera de horario"}
+                  <button className="btn-secondary self-start !py-2 !px-4 text-xs sm:self-auto" onClick={toggleActivo}>
+                    {activoHoy ? "Desactivar atención especial" : "Atender fuera de horario"}
                   </button>
                 </div>
               )}
 
             {mostrarConfig && (
-              <div className="animate-fadeIn space-y-2 border-t border-line pt-4">
-                {DIAS.map((d) => {
-                  const cfg = availability.horarioSemanal[d.key];
-                  return (
-                    <div key={d.key} className="flex items-center gap-3 text-sm">
-                      <label className="flex w-24 items-center gap-2 text-ink">
+              <div className="animate-fadeIn space-y-6 border-t border-line pt-4">
+                <div className="space-y-2">
+                  {DIAS.map((d) => {
+                    const cfg = availability.horarioSemanal[d.key];
+                    const rangoInvalido = cfg.habilitado && !rangoHorarioValido(cfg.inicio, cfg.fin);
+                    return (
+                      <div key={d.key} className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm">
+                        <label className="flex w-24 items-center gap-2 text-ink">
+                          <input
+                            type="checkbox"
+                            checked={cfg.habilitado}
+                            onChange={(e) => actualizarDia(d.key, { habilitado: e.target.checked })}
+                          />
+                          {d.label}
+                        </label>
                         <input
-                          type="checkbox"
-                          checked={cfg.habilitado}
-                          onChange={(e) => actualizarDia(d.key, { habilitado: e.target.checked })}
+                          type="time"
+                          value={cfg.inicio}
+                          disabled={!cfg.habilitado}
+                          onChange={(e) => actualizarDia(d.key, { inicio: e.target.value })}
+                          className={`rounded-lg border px-2 py-1 text-xs disabled:opacity-40 ${
+                            rangoInvalido ? "border-red-300" : "border-line"
+                          }`}
                         />
-                        {d.label}
-                      </label>
-                      <input
-                        type="time"
-                        value={cfg.inicio}
-                        disabled={!cfg.habilitado}
-                        onChange={(e) => actualizarDia(d.key, { inicio: e.target.value })}
-                        className="rounded-lg border border-line px-2 py-1 text-xs disabled:opacity-40"
-                      />
-                      <span className="text-muted">a</span>
-                      <input
-                        type="time"
-                        value={cfg.fin}
-                        disabled={!cfg.habilitado}
-                        onChange={(e) => actualizarDia(d.key, { fin: e.target.value })}
-                        className="rounded-lg border border-line px-2 py-1 text-xs disabled:opacity-40"
-                      />
-                    </div>
-                  );
-                })}
+                        <span className="text-muted">a</span>
+                        <input
+                          type="time"
+                          value={cfg.fin}
+                          disabled={!cfg.habilitado}
+                          onChange={(e) => actualizarDia(d.key, { fin: e.target.value })}
+                          className={`rounded-lg border px-2 py-1 text-xs disabled:opacity-40 ${
+                            rangoInvalido ? "border-red-300" : "border-line"
+                          }`}
+                        />
+                        {rangoInvalido && (
+                          <span className="text-xs text-red-600">termina antes de empezar</span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <ExcepcionesEditor
+                  excepciones={availability.excepciones}
+                  onGuardar={actualizarExcepciones}
+                />
               </div>
           )}
             </div>
@@ -233,7 +293,13 @@ export default function AdminDashboard() {
         {/* CONSULTAS DE HOY */}
         <div>
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted">Consultas</h2>
-          {hoy.length === 0 ? (
+          {cargando ? (
+            <div className="space-y-2.5">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="skeleton-card !h-16" />
+              ))}
+            </div>
+          ) : hoy.length === 0 ? (
             <div className="card text-center text-sm text-muted">Todavía no hay consultas registradas.</div>
           ) : (
             <div className="space-y-2.5">

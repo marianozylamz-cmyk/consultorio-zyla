@@ -1,7 +1,8 @@
 'use client';
 
 import { doctorProfile } from '@/data/doctorProfile';
-import { IconClock, IconCard, IconVideo } from './icons';
+import { IconClock, IconCard, IconVideo, IconWhatsApp } from './icons';
+import { linkWhatsAppConsultorio } from '@/lib/whatsapp';
 
 interface Paso {
   numero: string;
@@ -37,13 +38,13 @@ export function HowItWorks() {
       <div className="container-max">
         {/* Encabezado */}
         <div className="mb-16 max-w-2xl">
-          <p className="mb-2 text-xs font-bold uppercase tracking-widest text-[#7A8499]">
+          <p className="mb-2 text-xs font-bold uppercase tracking-widest text-muted">
             El proceso
           </p>
           <h2 className="text-3xl font-bold text-[#2C3E50] md:text-4xl">
             ¿Cómo funciona?
           </h2>
-          <p className="mt-4 text-[15px] text-[#7A8499] leading-relaxed">
+          <p className="mt-4 text-[15px] text-muted leading-relaxed">
             Desde que abrís la página hasta que empezás a hablar con el doctor: 3 pasos simples, sin
             complicaciones.
           </p>
@@ -94,7 +95,7 @@ export function HowItWorks() {
                   <h3 className="mb-2 text-lg font-bold leading-snug text-[#2C3E50]">
                     {paso.titulo}
                   </h3>
-                  <p className="text-[15px] leading-relaxed text-[#7A8499]">
+                  <p className="text-[15px] leading-relaxed text-muted">
                     {paso.descripcion}
                   </p>
                 </div>
@@ -108,18 +109,16 @@ export function HowItWorks() {
           <h3 className="mb-3 text-2xl font-bold text-[#2C3E50]">
             ¿Tenés dudas?
           </h3>
-          <p className="mb-6 text-[15px] text-[#7A8499]">
+          <p className="mb-6 text-[15px] text-muted">
             Escribinos por WhatsApp y te respondemos en minutos.
           </p>
           <a
-            href={`https://wa.me/${doctorProfile.consultorio.whatsapp}`}
+            href={linkWhatsAppConsultorio('Hola, tengo una duda sobre las consultas online.')}
             target="_blank"
             rel="noopener noreferrer"
             className="btn-secondary inline-flex gap-2"
           >
-            <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M17.6 6.4c-1.4-1.4-3.3-2.2-5.3-2.2-4.1 0-7.5 3.4-7.5 7.5 0 1.3.3 2.6.9 3.8L2.9 21.1l4.1-1.3c1.2.7 2.5 1 3.9 1h.1c4.1 0 7.5-3.4 7.5-7.5 0-2-0.8-3.9-2.2-5.3zm-5.3 11.9h-.1c-1.2 0-2.4-0.3-3.4-1l-0.2-0.1-2.3 0.7 0.7-2.2-0.2-0.2c-0.8-1.1-1.2-2.4-1.2-3.8 0-3.4 2.8-6.2 6.2-6.2 1.7 0 3.2 0.6 4.4 1.8 1.2 1.2 1.8 2.7 1.8 4.4 0 3.4-2.8 6.2-6.2 6.2zm3.5-4.7c-0.2-0.1-1.1-0.5-1.3-0.6-0.2-0.1-0.4-0.1-0.6 0.1-0.2 0.3-0.8 0.9-1 1.1-0.2 0.2-0.3 0.2-0.5 0.1-0.2-0.1-0.9-0.3-1.7-1-0.6-0.6-1-1.3-1.1-1.5-0.1-0.2 0-0.3 0.1-0.4 0.1-0.1 0.3-0.3 0.4-0.5 0.1-0.2 0.1-0.3 0.2-0.5 0.1-0.2 0-0.3-0.1-0.4 0-0.1-0.6-1.4-0.8-1.9-0.2-0.4-0.4-0.4-0.6-0.4h-0.5c-0.2 0-0.4 0.1-0.6 0.3-0.2 0.2-0.8 0.8-0.8 1.9s0.9 2.2 1 2.4c0.1 0.2 1.5 2.3 3.6 3.2 0.5 0.2 0.9 0.3 1.2 0.4 0.5 0.1 1 0.1 1.4 0 0.4-0.1 1.1-0.4 1.3-0.9 0.2-0.5 0.2-0.9 0.1-1 0-0.1-0.2-0.3-0.4-0.4z" />
-            </svg>
+            <IconWhatsApp className="h-5 w-5" />
             Contactar por WhatsApp
           </a>
         </div>

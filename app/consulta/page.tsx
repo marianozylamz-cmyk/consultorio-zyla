@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { doctorProfile } from "@/data/doctorProfile";
 import { Patient } from "@/types";
+import { formatFechaLargaAR, horaActualArgentina } from "@/lib/availability";
 
 type Step = "datos" | "horario" | "checkout";
 
@@ -19,16 +20,6 @@ interface UpcomingDay {
   fecha: string;
   label: string;
   slotsCount: number;
-}
-
-function nowAsHora() {
-  const d = new Date();
-  return `${d.getHours().toString().padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}`;
-}
-
-function formatFechaLarga(iso: string) {
-  const d = new Date(`${iso}T12:00:00`);
-  return d.toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" });
 }
 
 export default function ConsultaPage() {
@@ -87,9 +78,15 @@ export default function ConsultaPage() {
     return Object.keys(nuevosErrores).length === 0;
   }
 
+  /** Actualiza un campo y limpia su error apenas el usuario lo empieza a corregir. */
+  function actualizarCampo(campo: keyof Patient, valor: string) {
+    setPaciente((prev) => ({ ...prev, [campo]: valor }));
+    setErrores((prev) => (prev[campo] ? { ...prev, [campo]: undefined } : prev));
+  }
+
   function elegirAhora() {
     setEsAhora(true);
-    setHoraElegida(nowAsHora());
+    setHoraElegida(horaActualArgentina());
     setStep("checkout");
   }
 
@@ -124,6 +121,7 @@ export default function ConsultaPage() {
             paciente,
             fecha: availability?.fecha ?? fechaSeleccionada ?? hoyISO,
             hora: horaElegida,
+            esAhora,
           }),
         });
 
@@ -238,45 +236,89 @@ export default function ConsultaPage() {
         {step === "datos" && (
           <div className="mt-10 animate-fadeIn space-y-4">
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-ink">Nombre y apellido</label>
+              <label htmlFor="campo-nombre" className="mb-1.5 block text-sm font-medium text-ink">
+                Nombre y apellido
+              </label>
               <input
+                id="campo-nombre"
                 className="input-field"
                 value={paciente.nombre}
-                onChange={(e) => setPaciente({ ...paciente, nombre: e.target.value })}
+                onChange={(e) => actualizarCampo("nombre", e.target.value)}
                 placeholder="José Pérez"
+                autoComplete="name"
+                aria-invalid={Boolean(errores.nombre)}
+                aria-describedby={errores.nombre ? "error-nombre" : undefined}
               />
-              {errores.nombre && <p className="mt-1 text-xs text-red-600">{errores.nombre}</p>}
+              {errores.nombre && (
+                <p id="error-nombre" role="alert" className="mt-1 text-xs text-red-600">
+                  {errores.nombre}
+                </p>
+              )}
             </div>
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-ink">DNI</label>
+              <label htmlFor="campo-dni" className="mb-1.5 block text-sm font-medium text-ink">
+                DNI
+              </label>
               <input
+                id="campo-dni"
                 className="input-field"
                 value={paciente.dni}
-                onChange={(e) => setPaciente({ ...paciente, dni: e.target.value })}
+                onChange={(e) => actualizarCampo("dni", e.target.value)}
                 placeholder="30123456"
                 inputMode="numeric"
+                autoComplete="off"
+                aria-invalid={Boolean(errores.dni)}
+                aria-describedby={errores.dni ? "error-dni" : undefined}
               />
-              {errores.dni && <p className="mt-1 text-xs text-red-600">{errores.dni}</p>}
+              {errores.dni && (
+                <p id="error-dni" role="alert" className="mt-1 text-xs text-red-600">
+                  {errores.dni}
+                </p>
+              )}
             </div>
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-ink">WhatsApp</label>
+              <label htmlFor="campo-whatsapp" className="mb-1.5 block text-sm font-medium text-ink">
+                WhatsApp
+              </label>
               <input
+                id="campo-whatsapp"
+                type="tel"
                 className="input-field"
                 value={paciente.whatsapp}
-                onChange={(e) => setPaciente({ ...paciente, whatsapp: e.target.value })}
+                onChange={(e) => actualizarCampo("whatsapp", e.target.value)}
                 placeholder="+54 9 11 1234-5678"
+                inputMode="tel"
+                autoComplete="tel"
+                aria-invalid={Boolean(errores.whatsapp)}
+                aria-describedby={errores.whatsapp ? "error-whatsapp" : undefined}
               />
-              {errores.whatsapp && <p className="mt-1 text-xs text-red-600">{errores.whatsapp}</p>}
+              {errores.whatsapp && (
+                <p id="error-whatsapp" role="alert" className="mt-1 text-xs text-red-600">
+                  {errores.whatsapp}
+                </p>
+              )}
             </div>
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-ink">Email</label>
+              <label htmlFor="campo-email" className="mb-1.5 block text-sm font-medium text-ink">
+                Email
+              </label>
               <input
+                id="campo-email"
+                type="email"
                 className="input-field"
                 value={paciente.email}
-                onChange={(e) => setPaciente({ ...paciente, email: e.target.value })}
+                onChange={(e) => actualizarCampo("email", e.target.value)}
                 placeholder="jose@email.com"
+                inputMode="email"
+                autoComplete="email"
+                aria-invalid={Boolean(errores.email)}
+                aria-describedby={errores.email ? "error-email" : undefined}
               />
-              {errores.email && <p className="mt-1 text-xs text-red-600">{errores.email}</p>}
+              {errores.email && (
+                <p id="error-email" role="alert" className="mt-1 text-xs text-red-600">
+                  {errores.email}
+                </p>
+              )}
             </div>
 
             <button
@@ -334,9 +376,15 @@ export default function ConsultaPage() {
 
             <div>
               <p className="mb-3 text-sm font-medium text-ink">
-                Horarios{fechaSeleccionada ? ` — ${formatFechaLarga(fechaSeleccionada)}` : ""}
+                Horarios{fechaSeleccionada ? ` — ${formatFechaLargaAR(fechaSeleccionada)}` : ""}
               </p>
-              {availability && availability.slots.length > 0 ? (
+              {!diasDisponibles || !availability ? (
+                <div className="grid grid-cols-3 gap-2.5" aria-label="Cargando horarios">
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <div key={i} className="skeleton h-11 rounded-xl" />
+                  ))}
+                </div>
+              ) : availability.slots.length > 0 ? (
                 <div className="grid grid-cols-3 gap-2.5">
                   {availability.slots.map((hora) => (
                     <button
@@ -348,7 +396,7 @@ export default function ConsultaPage() {
                     </button>
                   ))}
                 </div>
-              ) : diasDisponibles && diasDisponibles.every((d) => d.slotsCount === 0) ? (
+              ) : diasDisponibles.every((d) => d.slotsCount === 0) ? (
                 <div className="card bg-bgsoft text-sm text-ink/80">
                   No hay horarios disponibles en los próximos días. Escribinos por WhatsApp y te avisamos
                   apenas se abra un turno.
@@ -378,7 +426,7 @@ export default function ConsultaPage() {
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-muted">Fecha</span>
-                <span className="text-ink">{availability?.fecha ?? "—"}</span>
+                <span className="text-ink">{availability?.fecha ? formatFechaLargaAR(availability.fecha) : "—"}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-muted">Hora</span>
@@ -417,7 +465,7 @@ export default function ConsultaPage() {
             <div className="space-y-3">
               {modoPago !== "mock" && (
                 <button className="btn-primary w-full" disabled={enviando} onClick={iniciarPago}>
-                  {enviando ? "Redirigiendo a Mercado Pago…" : "Pagar y solicitar consulta"}
+                  {enviando ? "Procesando…" : "Pagar y solicitar consulta"}
                 </button>
               )}
 
@@ -445,7 +493,8 @@ export default function ConsultaPage() {
             </div>
 
             <p className="text-center text-xs text-muted">
-              Pago seguro procesado por Mercado Pago.
+              Pago seguro procesado por Mercado Pago. Podés pagar con tarjeta de crédito o débito,
+              dinero en cuenta o efectivo — no hace falta tener cuenta de Mercado Pago.
             </p>
 
             <button className="text-sm text-muted hover:text-ink" onClick={() => setStep("horario")}>

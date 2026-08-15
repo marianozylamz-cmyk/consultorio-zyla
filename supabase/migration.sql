@@ -1,11 +1,36 @@
 -- ==========================================================
 -- Esquema asumido para la tabla `consultations`.
--- La tabla `availability` ya existe tal cual la describiste (id,
--- activo, horario_semanal, excepciones, updated_at) y no se toca.
 --
 -- Si tu tabla `consultations` YA existe con otros nombres de
 -- columna, avisá y se ajustan los mappers en lib/store.ts —
 -- es la única sección del código que conoce estos nombres.
+-- ==========================================================
+
+-- ==========================================================
+-- `availability` — cambio de esquema: activo -> activo_desde
+--
+-- Correr esto A MANO en el SQL Editor de Supabase antes de
+-- deployar el código nuevo (lib/store.ts ya lee/escribe
+-- `activo_desde`, no `activo`).
+--
+-- Por qué: `activo` era un booleano suelto sin fecha — una vez
+-- prendido, no había forma de saber si correspondía a HOY o
+-- había quedado pegado de otro día (ese fue el bug de
+-- "Disponible ahora" en días marcados como no laborables).
+-- `activo_desde` guarda la fecha en que se activó "Atender
+-- ahora"; el código considera vigente el interruptor solo si esa
+-- fecha es la de hoy — se "vence" solo a la medianoche.
+--
+-- La columna vieja `activo` se deja en la tabla sin tocar (no se
+-- dropea) por las dudas — el código ya no la lee ni la escribe.
+alter table availability add column if not exists activo_desde date;
+
+-- Backfill: si `activo` estaba en true, la mejor estimación
+-- disponible es asumir que se activó hoy.
+update availability
+   set activo_desde = current_date
+ where activo = true
+   and activo_desde is null;
 -- ==========================================================
 
 create table if not exists consultations (

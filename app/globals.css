@@ -9,9 +9,10 @@
   --color-medical: #1B6E5C;      /* Verde menta médico */
   --color-warm: #F4EFE4;          /* Arena cálida */
   --color-navy: #2C3E50;          /* Azul marino profundo */
-  --color-coral: #E8837A;         /* Coral suave */
+  --color-coral: #E8837A;         /* Coral suave — decorativo/fondos, NO usar como color de texto (falla contraste, ver --color-coral-text) */
+  --color-coral-text: #AC615A;    /* Coral oscurecido para texto: 4.55:1 sobre blanco, cumple WCAG AA */
   --color-text: #172033;          /* Ink */
-  --color-muted: #7A8499;         /* Muted secondary */
+  --color-muted: #6b7487;         /* Muted secondary — 4.69:1 sobre blanco, cumple WCAG AA (antes #7A8499, 3.76:1, no cumplía) */
   --color-line: #E5E9F0;          /* Líneas finas */
   --color-skyfaint: #E8EFF5;      /* Cielo muy suave */
   --color-bg-soft: #F9FAFB;       /* Background más blanco */
@@ -408,7 +409,7 @@ img {
    ESTILOS DE CÓDIGO
    ======================================== */
 code {
-  @apply rounded bg-[#F4EFE4] px-1.5 py-0.5 font-mono text-sm text-[#E8837A];
+  @apply rounded bg-[#F4EFE4] px-1.5 py-0.5 font-mono text-sm text-[#AC615A];
 }
 
 pre {

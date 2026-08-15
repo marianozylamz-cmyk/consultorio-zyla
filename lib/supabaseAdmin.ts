@@ -29,4 +29,13 @@ if (!supabaseUrl || !supabaseServiceRoleKey) {
 
 export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey, {
   auth: { persistSession: false, autoRefreshToken: false },
+  // Next.js parchea el fetch global y por defecto cachea las respuestas GET
+  // durante el render, incluso las que hace por dentro esta librería — el
+  // `export const dynamic = "force-dynamic"` de las rutas no alcanza para
+  // evitarlo de forma confiable. Sin esto, una consulta a Supabase podía
+  // devolver disponibilidad vieja (ej. justo después de guardar un cambio
+  // en Admin) hasta que el cache expirara solo.
+  global: {
+    fetch: (input, init) => fetch(input, { ...init, cache: "no-store" }),
+  },
 });

@@ -66,7 +66,7 @@ export function AvailabilityStatus({
       className={`inline-flex items-center gap-2.5 rounded-full px-4 py-2 text-sm font-semibold transition-all duration-300 ${
         disponibleAhora
           ? "bg-[#D4F1E8] text-[#1B6E5C]"
-          : "bg-[#F4EFE4] text-[#7A8499]"
+          : "bg-[#F4EFE4] text-muted"
       } ${compact ? "!py-1.5 !px-3 !text-xs" : ""}`}
     >
       <span

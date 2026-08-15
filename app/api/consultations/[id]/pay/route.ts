@@ -1,11 +1,20 @@
 import { NextResponse } from "next/server";
 import { getConsultation, liberarTurnoDeConsulta, updateConsultation } from "@/lib/store";
 import { errorDeServidor } from "@/lib/apiErrors";
+import { mercadoPagoConfigurado } from "@/lib/mercadopago";
 import { paymentService } from "@/services/paymentService";
 import { notificationService } from "@/services/notificationService";
 
+// Endpoint de DEMO — simula un pago sin pasar por Mercado Pago. Una vez que
+// hay un Access Token real configurado, tiene que dejar de responder: si
+// no, cualquiera podría "aprobar" su propia consulta gratis llamando a
+// esta ruta directo, esté o no el botón de demo visible en la UI.
 export async function POST(req: Request, { params }: { params: { id: string } }) {
   try {
+    if (mercadoPagoConfigurado()) {
+      return NextResponse.json({ error: "No disponible" }, { status: 404 });
+    }
+
     const consultation = await getConsultation(params.id);
     if (!consultation) {
       return NextResponse.json({ error: "Consulta no encontrada" }, { status: 404 });

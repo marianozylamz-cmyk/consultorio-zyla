@@ -3,6 +3,9 @@
 import { useState } from "react";
 import { doctorProfile } from "@/data/doctorProfile";
 import { Consultation } from "@/types";
+import { useModalA11y } from "@/lib/useModalA11y";
+import { linkWhatsAppConsultorio } from "@/lib/whatsapp";
+import { IconWhatsApp } from "@/components/icons";
 
 interface Props {
   consultation: Consultation;
@@ -18,38 +21,51 @@ interface Props {
 export function SolicitudSecretariaModal({ consultation, onCerrar }: Props) {
   const [medicamento, setMedicamento] = useState("");
   const [indicaciones, setIndicaciones] = useState("");
+  const { contenedorRef, onBackdropClick } = useModalA11y(onCerrar);
 
   function construirMensaje() {
-    return [
-      "Solicitud de receta",
-      "",
-      "Paciente:",
-      consultation.paciente.nombre,
+    const lineas = [
+      `Hola, soy ${consultation.paciente.nombre}.`,
       `DNI: ${consultation.paciente.dni}`,
       "",
-      "Medicamento solicitado:",
-      medicamento || "_____",
+      "Solicito a secretaría una receta de:",
+      medicamento,
+    ];
+    if (indicaciones) lineas.push(`Indicaciones: ${indicaciones}`);
+    lineas.push(
       "",
-      "Indicaciones:",
-      indicaciones || "_____",
+      `Mi consulta fue realizada con el Dr. ${doctorProfile.nombre}.`,
       "",
-      "Consulta realizada:",
-      `${consultation.fecha} ${consultation.hora}`,
-    ].join("\n");
+      "Por favor, podrían enviarle la receta al paciente a este WhatsApp o email:",
+      `WhatsApp: ${consultation.paciente.whatsapp}`,
+      `Email: ${consultation.paciente.email}`,
+      "",
+      "Gracias."
+    );
+    return lineas.join("\n");
   }
 
   function enviar() {
-    const mensaje = encodeURIComponent(construirMensaje());
-    window.open(`https://wa.me/549${doctorProfile.consultorio.whatsapp}?text=${mensaje}`, "_blank");
+    if (!medicamento.trim()) return;
+    window.open(linkWhatsAppConsultorio(construirMensaje()), "_blank");
     onCerrar();
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-navy/40 p-0 sm:items-center sm:p-5">
-      <div className="w-full rounded-t-2xl bg-white p-5 shadow-soft sm:max-w-md sm:rounded-2xl sm:p-6">
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-navy/40 p-0 sm:items-center sm:p-5"
+      onClick={onBackdropClick}
+    >
+      <div
+        ref={contenedorRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="secretaria-titulo"
+        className="w-full rounded-t-2xl bg-white p-5 shadow-soft sm:max-w-md sm:rounded-2xl sm:p-6"
+      >
         <div className="mb-5 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-ink">Solicitar receta a secretaría</h2>
-          <button onClick={onCerrar} className="text-2xl leading-none text-muted hover:text-ink">
+          <h2 id="secretaria-titulo" className="text-lg font-semibold text-ink">Solicitar receta a secretaría</h2>
+          <button onClick={onCerrar} className="text-2xl leading-none text-muted hover:text-ink" aria-label="Cerrar">
             ×
           </button>
         </div>
@@ -84,7 +100,12 @@ export function SolicitudSecretariaModal({ consultation, onCerrar }: Props) {
           <button onClick={onCerrar} className="btn-secondary flex-1">
             Cancelar
           </button>
-          <button onClick={enviar} className="btn-primary flex-1">
+          <button
+            onClick={enviar}
+            disabled={!medicamento.trim()}
+            className="btn-primary flex-1 inline-flex items-center justify-center gap-2"
+          >
+            <IconWhatsApp className="h-4 w-4" />
             Enviar por WhatsApp
           </button>
         </div>

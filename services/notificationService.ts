@@ -1,6 +1,6 @@
-import { Consultation, DocumentFile, NotificationLog } from "@/types";
+import { Consultation, NotificationLog } from "@/types";
 import { doctorProfile } from "@/data/doctorProfile";
-import { enviarEmail, dataUrlToAttachment } from "@/lib/email";
+import { enviarEmail } from "@/lib/email";
 
 // ==========================================================
 // Sistema de notificaciones al médico. Juan puede estar en
@@ -79,32 +79,12 @@ class NotificationService {
     return results;
   }
 
-  /** Envía el documento directo como adjunto por mail al paciente (decisión: sin link intermedio). */
-  async sendDocumentToPatient(consultation: Consultation, doc: DocumentFile): Promise<NotificationLog> {
-    const TIPO_LABEL: Record<string, string> = {
-      receta: "Receta",
-      certificado: "Certificado",
-      indicaciones: "Indicaciones",
-      otro: "Documento",
-    };
-
-    const html = `
-      <p>Hola ${consultation.paciente.nombre},</p>
-      <p>El Dr. Zyla te envía tu ${TIPO_LABEL[doc.tipo] ?? "documento"} de la consulta del ${consultation.fecha}.</p>
-      <p>Lo encontrás adjunto a este mail.</p>
-      <p>Saludos,<br/>Dr. ${doctorProfile.nombre}</p>
-    `;
-
-    await enviarEmail({
-      to: consultation.paciente.email,
-      subject: `${TIPO_LABEL[doc.tipo] ?? "Documento"} — Dr. ${doctorProfile.nombre}`,
-      html,
-      attachments: [dataUrlToAttachment(doc.nombre, doc.dataUrl)],
-    });
-
-    const mensaje = `Documento "${doc.nombre}" enviado por mail a ${consultation.paciente.email}`;
-    return { canal: "email", mensaje, enviadoEn: new Date().toISOString() };
-  }
+  // Nota: el envío de documentos/certificados al paciente por mail NO pasa
+  // por acá — un mailto: no puede adjuntar un archivo automáticamente
+  // (limitación real del estándar, no de esta app), así que ese flujo es
+  // 100% del lado del cliente: descarga el archivo y abre el cliente de
+  // correo del médico con destinatario/asunto/cuerpo ya completos. Ver
+  // enviarDocumento() en app/admin/consulta/[id]/page.tsx.
 }
 
 export const notificationService = new NotificationService();

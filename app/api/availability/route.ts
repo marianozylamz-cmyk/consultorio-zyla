@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
-import { getAvailability } from "@/lib/store";
+import { getAvailability, getHorasReservadasEnRango } from "@/lib/store";
 import { errorDeServidor } from "@/lib/apiErrors";
+import { doctorProfile } from "@/data/doctorProfile";
 import {
+  esAtencionEspecialHoy,
   getEffectiveScheduleForDate,
   getSlotsForDate,
   isAvailableNow,
@@ -29,8 +31,13 @@ export async function GET(req: Request) {
       ? isAvailableNow(config, now)
       : { disponible: false, horarioHoy: null, dentroDeHorarioHabitual: false };
 
-    // Esto representa ÚNICAMENTE la agenda normal.
-    const slots = getSlotsForDate(config, fecha);
+    // Esto representa ÚNICAMENTE la agenda normal, sin los horarios que
+    // ya tiene otro paciente — turnos_reservados es la fuente de verdad
+    // real de "ocupado", no algo que se pueda derivar solo del horario.
+    const fechaISO = toISODate(fecha);
+    const reservadas = await getHorasReservadasEnRango(doctorProfile.id, [fechaISO]);
+    const horasOcupadas = reservadas.get(fechaISO) ?? new Set<string>();
+    const slots = getSlotsForDate(config, fecha, 30, now).filter((h) => !horasOcupadas.has(h));
 
     // Rango horario NORMAL de la fecha consultada (agenda, no atención
     // inmediata). Se usa para mostrar texto tipo "17:00 a 19:00 hs." en
@@ -60,8 +67,8 @@ export async function GET(req: Request) {
       // null si ese día está cerrado.
       rangoHorario,
 
-      // Estado del interruptor "atender ahora".
-      activo: config.activo,
+      // Estado del interruptor "atender ahora" (solo cuenta si se activó hoy).
+      activo: esAtencionEspecialHoy(config, now),
     });
   } catch (error) {
     return errorDeServidor(

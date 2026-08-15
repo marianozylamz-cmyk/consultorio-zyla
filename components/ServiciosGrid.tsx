@@ -6,8 +6,10 @@ import {
   IconDocumentCheck,
   IconCalendarCheck,
   IconClipboardSearch,
+  IconWhatsApp,
 } from './icons';
 import { doctorProfile } from '@/data/doctorProfile';
+import { linkWhatsAppConsultorio } from '@/lib/whatsapp';
 
 interface ServicioDetail {
   icono: React.ComponentType<{ className?: string }>;
@@ -52,13 +54,13 @@ export function ServiciosGrid() {
       <div className="container-max">
         {/* Encabezado */}
         <div className="mb-14 max-w-2xl">
-          <p className="mb-2 text-xs font-bold uppercase tracking-widest text-[#7A8499]">
+          <p className="mb-2 text-xs font-bold uppercase tracking-widest text-muted">
             Áreas de atención
           </p>
           <h2 className="text-3xl font-bold text-[#2C3E50] md:text-4xl">
             Servicios médicos
           </h2>
-          <p className="mt-4 text-[15px] text-[#7A8499]">
+          <p className="mt-4 text-[15px] text-muted">
             Especialista en medicina clínica y laboral con experiencia en evaluaciones, certificaciones
             y pericias médicas.
           </p>
@@ -73,9 +75,12 @@ export function ServiciosGrid() {
             };
 
             return (
-              <div
+              <a
                 key={servicio}
-                className="group card hover-lift animate-fadeIn"
+                href={linkWhatsAppConsultorio(`Hola, quiero más información sobre ${servicio}.`)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group card hover-lift animate-fadeIn block"
                 style={{
                   animationDelay: `${idx * 50}ms`,
                   animationFillMode: 'both',
@@ -83,7 +88,7 @@ export function ServiciosGrid() {
               >
                 {/* Ícono en fondo circular */}
                 <div
-                  className="mb-5 inline-flex h-12 w-12 items-center justify-center rounded-full 
+                  className="mb-5 inline-flex h-12 w-12 items-center justify-center rounded-full
                     bg-[#E8EFF5] text-[#1B6E5C]
                     transition-all duration-300 group-hover:bg-[#1B6E5C] group-hover:text-white group-hover:shadow-lg"
                 >
@@ -97,15 +102,15 @@ export function ServiciosGrid() {
 
                 {/* Descripción */}
                 {texto && (
-                  <p className="text-sm leading-relaxed text-[#7A8499]">
+                  <p className="text-sm leading-relaxed text-muted">
                     {texto}
                   </p>
                 )}
 
-                {/* Indicador de hover (flecha invisible que aparece) */}
+                {/* Indicador de hover — ahora es un link real a WhatsApp, no decorativo */}
                 <div className="mt-4 flex items-center gap-2 text-[#1B6E5C] opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-                  <span className="text-xs font-semibold">Más info</span>
-                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <span className="text-xs font-semibold">Consultar por WhatsApp</span>
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -114,32 +119,30 @@ export function ServiciosGrid() {
                     />
                   </svg>
                 </div>
-              </div>
+              </a>
             );
           })}
         </div>
 
         {/* CTA secundario */}
         <div className="mt-16 rounded-2xl border-2 border-[#1B6E5C]/10 bg-gradient-to-r from-[#F4EFE4] to-[#E8EFF5] p-8 text-center md:p-12">
-          <p className="mb-4 text-xs font-bold uppercase tracking-widest text-[#7A8499]">
+          <p className="mb-4 text-xs font-bold uppercase tracking-widest text-muted">
             ¿Necesitás más información?
           </p>
           <h3 className="mb-4 text-2xl font-bold text-[#2C3E50]">
             Consultá tus dudas
           </h3>
-          <p className="mb-6 max-w-lg mx-auto text-[15px] text-[#7A8499]">
+          <p className="mb-6 max-w-lg mx-auto text-[15px] text-muted">
             Escribinos y te explicamos en detalle cómo podemos ayudarte o si necesitás derivación a
             otro especialista.
           </p>
           <a
-            href={`https://wa.me/${doctorProfile.consultorio.whatsapp}`}
+            href={linkWhatsAppConsultorio('Hola, tengo una consulta.')}
             target="_blank"
             rel="noopener noreferrer"
             className="btn-primary inline-flex gap-2"
           >
-            <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M17.6 6.4c-1.4-1.4-3.3-2.2-5.3-2.2-4.1 0-7.5 3.4-7.5 7.5 0 1.3.3 2.6.9 3.8L2.9 21.1l4.1-1.3c1.2.7 2.5 1 3.9 1h.1c4.1 0 7.5-3.4 7.5-7.5 0-2-0.8-3.9-2.2-5.3zm-5.3 11.9h-.1c-1.2 0-2.4-0.3-3.4-1l-0.2-0.1-2.3 0.7 0.7-2.2-0.2-0.2c-0.8-1.1-1.2-2.4-1.2-3.8 0-3.4 2.8-6.2 6.2-6.2 1.7 0 3.2 0.6 4.4 1.8 1.2 1.2 1.8 2.7 1.8 4.4 0 3.4-2.8 6.2-6.2 6.2zm3.5-4.7c-0.2-0.1-1.1-0.5-1.3-0.6-0.2-0.1-0.4-0.1-0.6 0.1-0.2 0.3-0.8 0.9-1 1.1-0.2 0.2-0.3 0.2-0.5 0.1-0.2-0.1-0.9-0.3-1.7-1-0.6-0.6-1-1.3-1.1-1.5-0.1-0.2 0-0.3 0.1-0.4 0.1-0.1 0.3-0.3 0.4-0.5 0.1-0.2 0.1-0.3 0.2-0.5 0.1-0.2 0-0.3-0.1-0.4 0-0.1-0.6-1.4-0.8-1.9-0.2-0.4-0.4-0.4-0.6-0.4h-0.5c-0.2 0-0.4 0.1-0.6 0.3-0.2 0.2-0.8 0.8-0.8 1.9s0.9 2.2 1 2.4c0.1 0.2 1.5 2.3 3.6 3.2 0.5 0.2 0.9 0.3 1.2 0.4 0.5 0.1 1 0.1 1.4 0 0.4-0.1 1.1-0.4 1.3-0.9 0.2-0.5 0.2-0.9 0.1-1 0-0.1-0.2-0.3-0.4-0.4z" />
-            </svg>
+            <IconWhatsApp className="h-5 w-5" />
             Escribir por WhatsApp
           </a>
         </div>

@@ -52,7 +52,12 @@ export interface AvailabilityOverride {
 }
 
 export interface AvailabilityConfig {
-  activo: boolean; // interruptor maestro: el médico puede apagar todo
+  // Fecha ISO ("2026-08-15") del día en que el médico activó "Atender ahora"
+  // fuera de su horario habitual, o null si está apagado. Solo cuenta como
+  // vigente si coincide con la fecha de HOY (ver esAtencionEspecialHoy en
+  // lib/availability.ts) — así el interruptor nunca queda prendido "para
+  // siempre" arrastrado de un día anterior.
+  activoDesde: string | null;
   horarioSemanal: Record<Weekday, DaySchedule>;
   excepciones: AvailabilityOverride[];
 }

@@ -29,7 +29,7 @@ export function SiteHeader({ fixed = true }: SiteHeaderProps) {
           <div className="text-[15px] font-bold tracking-tight text-[#2C3E50] group-hover:text-[#1B6E5C] transition-colors">
             Dr. Juan Zyla
           </div>
-          <div className="text-xs text-[#7A8499] group-hover:text-[#1B6E5C]/70 transition-colors">
+          <div className="text-xs text-muted group-hover:text-[#1B6E5C]/70 transition-colors">
             Medicina Clínica
           </div>
         </Link>
@@ -40,7 +40,7 @@ export function SiteHeader({ fixed = true }: SiteHeaderProps) {
             <Link
               key={link.href}
               href={link.href}
-              className="text-sm font-medium text-[#7A8499] transition-colors hover:text-[#1B6E5C] hover:font-semibold"
+              className="text-sm font-medium text-muted transition-colors hover:text-[#1B6E5C] hover:font-semibold"
             >
               {link.label}
             </Link>
@@ -102,7 +102,7 @@ export function SiteHeader({ fixed = true }: SiteHeaderProps) {
               <Link
                 key={link.href}
                 href={link.href}
-                className="px-4 py-2.5 text-sm font-medium text-[#7A8499] hover:text-[#1B6E5C] hover:bg-[#F4EFE4] rounded-lg transition-colors"
+                className="px-4 py-2.5 text-sm font-medium text-muted hover:text-[#1B6E5C] hover:bg-[#F4EFE4] rounded-lg transition-colors"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 {link.label}

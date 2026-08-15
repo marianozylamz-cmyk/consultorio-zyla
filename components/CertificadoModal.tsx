@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { doctorProfile } from '@/data/doctorProfile';
 import { CertificateInput } from '@/types';
+import { useModalA11y } from '@/lib/useModalA11y';
 
 interface Props {
   consultationId: string;
@@ -32,6 +33,7 @@ export function CertificadoModal({
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const { contenedorRef, onBackdropClick } = useModalA11y(onCerrar);
 
   const matriculaFalta = !doctorProfile.matricula;
 
@@ -78,14 +80,23 @@ export function CertificadoModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-[#2C3E50]/40 p-0 backdrop-blur-sm sm:items-center sm:p-5">
-      <div className="max-h-[92vh] w-full overflow-y-auto rounded-t-3xl bg-white p-6 shadow-[0_20px_60px_rgba(0,0,0,0.15)] sm:max-w-lg sm:rounded-2xl">
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-[#2C3E50]/40 p-0 backdrop-blur-sm sm:items-center sm:p-5"
+      onClick={onBackdropClick}
+    >
+      <div
+        ref={contenedorRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="certificado-titulo"
+        className="max-h-[92vh] w-full overflow-y-auto rounded-t-3xl bg-white p-6 shadow-[0_20px_60px_rgba(0,0,0,0.15)] sm:max-w-lg sm:rounded-2xl"
+      >
         {/* ENCABEZADO */}
         <div className="mb-6 flex items-center justify-between">
-          <h2 className="text-2xl font-bold text-[#2C3E50]">Generar certificado</h2>
+          <h2 id="certificado-titulo" className="text-2xl font-bold text-[#2C3E50]">Generar certificado</h2>
           <button
             onClick={onCerrar}
-            className="text-2xl leading-none text-[#7A8499] transition-colors hover:text-[#2C3E50] hover:bg-[#F4EFE4] w-8 h-8 flex items-center justify-center rounded-lg"
+            className="text-2xl leading-none text-muted transition-colors hover:text-[#2C3E50] hover:bg-[#F4EFE4] w-8 h-8 flex items-center justify-center rounded-lg"
             aria-label="Cerrar"
           >
             ✕
@@ -104,23 +115,24 @@ export function CertificadoModal({
         {/* ÉXITO */}
         {success && (
           <div className="alert alert-success mb-6 animate-fadeIn">
-            ✓ Certificado generado y enviado a <strong>{pacienteEmail}</strong>
+            ✓ Certificado generado. Usá &quot;Enviar por mail&quot; en la lista de documentos para
+            mandárselo a <strong>{pacienteEmail}</strong>.
           </div>
         )}
 
         {/* Datos prefabricados */}
         <div className="mb-6 rounded-xl bg-[#F4EFE4] p-4 text-sm">
-          <p className="mb-3 text-xs font-bold uppercase tracking-wide text-[#7A8499]">
+          <p className="mb-3 text-xs font-bold uppercase tracking-wide text-muted">
             Se completa automático
           </p>
           <div className="grid grid-cols-2 gap-y-2.5 text-[#172033]">
-            <span className="text-xs font-semibold text-[#7A8499]">Paciente</span>
+            <span className="text-xs font-semibold text-muted">Paciente</span>
             <span className="font-semibold">{pacienteNombre}</span>
-            <span className="text-xs font-semibold text-[#7A8499]">Email</span>
+            <span className="text-xs font-semibold text-muted">Email</span>
             <span className="font-semibold text-[#1B6E5C] break-all">{pacienteEmail}</span>
-            <span className="text-xs font-semibold text-[#7A8499]">Médico</span>
+            <span className="text-xs font-semibold text-muted">Médico</span>
             <span className="font-semibold">Dr. {doctorProfile.nombre}</span>
-            <span className="text-xs font-semibold text-[#7A8499]">Matrícula</span>
+            <span className="text-xs font-semibold text-muted">Matrícula</span>
             <span className="font-semibold">{doctorProfile.matricula ?? '—'}</span>
           </div>
         </div>
@@ -141,7 +153,7 @@ export function CertificadoModal({
 
           <div>
             <label className="mb-2 block text-sm font-bold text-[#2C3E50]">
-              Diagnóstico <span className="text-[#E8837A] font-semibold">*</span>
+              Diagnóstico <span className="text-[#AC615A] font-semibold">*</span>
             </label>
             <textarea
               className="input-field min-h-[100px] resize-y"

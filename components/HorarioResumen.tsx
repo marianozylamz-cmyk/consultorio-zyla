@@ -64,8 +64,17 @@ export function HorarioResumen() {
     }
 
     load();
+
+    // Sin esto, una pestaña que quedó abierta seguía mostrando el
+    // horario/disponibilidad de cuando cargó, sin importar los cambios
+    // que se hicieran después en Admin. Mismo intervalo que
+    // AvailabilityStatus, para que ambos widgets de la misma tarjeta
+    // se actualicen juntos.
+    const interval = setInterval(load, 15000);
+
     return () => {
       mounted = false;
+      clearInterval(interval);
     };
   }, []);
 
