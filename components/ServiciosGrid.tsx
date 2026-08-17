@@ -50,10 +50,10 @@ export function ServiciosGrid() {
   const servicios = doctorProfile.servicios || [];
 
   return (
-    <section id="servicios" className="border-t border-[#E5E9F0] bg-white section-spacing">
+    <section id="servicios" className="border-t border-[#E5E9F0] bg-white !py-10 sm:section-spacing">
       <div className="container-max">
         {/* Encabezado */}
-        <div className="mb-14 max-w-2xl">
+        <div className="mb-8 max-w-2xl sm:mb-14">
           <p className="mb-2 text-xs font-bold uppercase tracking-widest text-muted">
             Áreas de atención
           </p>
@@ -67,7 +67,7 @@ export function ServiciosGrid() {
         </div>
 
         {/* Grid */}
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3">
           {servicios.map((servicio, idx) => {
             const { icono: Icon, texto } = DETALLE_SERVICIO[servicio] || {
               icono: DEFAULT_ICON,
@@ -80,7 +80,7 @@ export function ServiciosGrid() {
                 href={linkWhatsAppConsultorio(`Hola, quiero más información sobre ${servicio}.`)}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group card hover-lift animate-fadeIn block"
+                className="group card hover-lift animate-fadeIn block !p-4 sm:!p-6"
                 style={{
                   animationDelay: `${idx * 50}ms`,
                   animationFillMode: 'both',
@@ -88,15 +88,15 @@ export function ServiciosGrid() {
               >
                 {/* Ícono en fondo circular */}
                 <div
-                  className="mb-5 inline-flex h-12 w-12 items-center justify-center rounded-full
-                    bg-[#E8EFF5] text-[#1B6E5C]
+                  className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-full
+                    bg-[#E8EFF5] text-[#1B6E5C] sm:mb-5 sm:h-12 sm:w-12
                     transition-all duration-300 group-hover:bg-[#1B6E5C] group-hover:text-white group-hover:shadow-lg"
                 >
-                  <Icon className="h-6 w-6" />
+                  <Icon className="h-5 w-5 sm:h-6 sm:w-6" />
                 </div>
 
                 {/* Título */}
-                <h3 className="mb-2.5 text-[15px] font-bold leading-snug text-[#2C3E50] group-hover:text-[#1B6E5C] transition-colors">
+                <h3 className="mb-1.5 text-[15px] font-bold leading-snug text-[#2C3E50] group-hover:text-[#1B6E5C] transition-colors sm:mb-2.5">
                   {servicio}
                 </h3>
 
@@ -107,8 +107,8 @@ export function ServiciosGrid() {
                   </p>
                 )}
 
-                {/* Indicador de hover — ahora es un link real a WhatsApp, no decorativo */}
-                <div className="mt-4 flex items-center gap-2 text-[#1B6E5C] opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                {/* Indicador de hover — decorativo, no aporta nada en touch (no hay hover), se oculta en mobile para no dejar espacio muerto */}
+                <div className="mt-4 hidden items-center gap-2 text-[#1B6E5C] opacity-0 transition-opacity duration-300 group-hover:opacity-100 sm:flex">
                   <span className="text-xs font-semibold">Consultar por WhatsApp</span>
                   <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                     <path
@@ -125,7 +125,7 @@ export function ServiciosGrid() {
         </div>
 
         {/* CTA secundario */}
-        <div className="mt-16 rounded-2xl border-2 border-[#1B6E5C]/10 bg-gradient-to-r from-[#F4EFE4] to-[#E8EFF5] p-8 text-center md:p-12">
+        <div className="mt-8 rounded-2xl border-2 border-[#1B6E5C]/10 bg-gradient-to-r from-[#F4EFE4] to-[#E8EFF5] p-6 text-center sm:mt-16 md:p-12">
           <p className="mb-4 text-xs font-bold uppercase tracking-widest text-muted">
             ¿Necesitás más información?
           </p>

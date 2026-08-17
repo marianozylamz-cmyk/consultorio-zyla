@@ -34,7 +34,17 @@ export default function AdminConsultaDetalle({ params }: { params: { id: string 
   const [mostrarSecretaria, setMostrarSecretaria] = useState(false);
   const [accionEnCurso, setAccionEnCurso] = useState<"atender" | "llamada" | "finalizar" | null>(null);
   const [avisoEnvio, setAvisoEnvio] = useState<string | null>(null);
+  const [linkCopiado, setLinkCopiado] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // Para emergencias: si el paciente no puede entrar desde su sala de
+  // espera, el médico puede pasarle este mismo link por WhatsApp a mano —
+  // es una URL fija, no hay nada que "romper" al compartirla.
+  async function copiarLinkVideollamada() {
+    await navigator.clipboard.writeText(doctorProfile.videollamadaUrl);
+    setLinkCopiado(true);
+    setTimeout(() => setLinkCopiado(false), 2000);
+  }
 
   async function cargar() {
     const res = await fetch(`/api/consultations/${params.id}`, { cache: "no-store" });
@@ -159,6 +169,11 @@ export default function AdminConsultaDetalle({ params }: { params: { id: string 
                   onClick={() => cambiarEstado("llamada", "en_consulta")}
                 >
                   {enCurso ? "Volver a la videollamada" : "Iniciar videollamada"}
+                </button>
+              )}
+              {puedeLlamar && (
+                <button className="btn-secondary !py-2.5" onClick={copiarLinkVideollamada}>
+                  {linkCopiado ? "¡Copiado!" : "Copiar link de videollamada"}
                 </button>
               )}
               {enCurso && (

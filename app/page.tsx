@@ -6,6 +6,8 @@ import { AvailabilityStatus } from '@/components/AvailabilityStatus';
 import { PulseDivider } from '@/components/PulseDivider';
 import { HowItWorks } from '@/components/HowItWorks';
 import { ServiciosGrid } from '@/components/ServiciosGrid';
+import { FAQ } from '@/components/FAQ';
+import { WhatsAppFloating } from '@/components/WhatsAppFloating';
 import {
   IconPin,
   IconPhone,
@@ -81,9 +83,8 @@ export default function LandingPage() {
                   <IconVideo className="h-3.5 w-3.5 text-[#1B6E5C]" />
                   Consultas Online
                 </p>
-                <p className="text-sm text-muted">Todos los días</p>
-                <p className="text-2xl font-bold text-[#2C3E50] mt-1">
-                  {d.consultaOnline.duracionMinutos} minutos
+                <p className="text-lg font-bold leading-snug text-[#2C3E50]">
+                  Agendá tu consulta online de {d.consultaOnline.duracionMinutos} minutos
                 </p>
               </div>
               <AvailabilityStatus compact />
@@ -192,7 +193,23 @@ export default function LandingPage() {
             </div>
           </div>
         </div>
+
+        <div className="mt-6 overflow-hidden rounded-2xl border border-[#E5E9F0]">
+          <iframe
+            src={`https://www.google.com/maps?q=${encodeURIComponent(
+              `${d.consultorio.direccion}, ${d.ciudad}, ${d.provincia}, Argentina`
+            )}&output=embed`}
+            className="h-64 w-full sm:h-80"
+            style={{ border: 0 }}
+            loading="lazy"
+            referrerPolicy="no-referrer-when-downgrade"
+            title="Ubicación del consultorio"
+          />
+        </div>
       </section>
+
+      {/* ===== PREGUNTAS FRECUENTES ===== */}
+      <FAQ />
 
       {/* ===== FOOTER ===== */}
       <section className="border-t border-[#E5E9F0] bg-[#F4EFE4] py-12 md:py-16">
@@ -240,6 +257,8 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+
+      <WhatsAppFloating />
     </main>
   );
 }

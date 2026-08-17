@@ -127,6 +127,49 @@ export async function liberarTurnoDeConsulta(consultationId: string): Promise<vo
 }
 
 /**
+ * Mueve una consulta ya confirmada a un nuevo (fecha, hora) — self-service
+ * de "reprogramar" sin cuentas de paciente, identificando todo por el id
+ * de la consulta (ver app/api/consultations/[id]/reprogramar/route.ts).
+ *
+ * Orden importante: reserva el turno NUEVO primero. Si ya está ocupado,
+ * tira SlotOcupadoError y no se toca nada — el paciente sigue teniendo su
+ * turno viejo intacto. Recién si el nuevo se reservó bien, se libera el
+ * viejo puntualmente (por fecha/hora exacta, no por consultation_id solo:
+ * durante el instante entre los dos pasos hay 2 filas con el mismo
+ * consultation_id — la vieja y la nueva — y no hay que borrar la nueva).
+ */
+export async function reprogramarConsulta(
+  consultation: Consultation,
+  nuevaFecha: string,
+  nuevaHora: string
+): Promise<Consultation> {
+  await reservarSlot(consultation.doctorId, nuevaFecha, nuevaHora, consultation.id);
+
+  const { error: liberarError } = await supabaseAdmin
+    .from("turnos_reservados")
+    .delete()
+    .eq("consultation_id", consultation.id)
+    .eq("fecha", consultation.fecha)
+    .eq("hora", consultation.hora);
+
+  if (liberarError) {
+    throw new Error(`No se pudo liberar el turno anterior: ${liberarError.message}`);
+  }
+
+  const { data, error } = await supabaseAdmin
+    .from("consultations")
+    .update({ fecha: nuevaFecha, hora: nuevaHora, recordatorio_enviado_at: null })
+    .eq("id", consultation.id)
+    .select("*")
+    .maybeSingle();
+
+  if (error || !data) {
+    throw new Error(`No se pudo actualizar la consulta reprogramada: ${error?.message ?? "sin datos"}`);
+  }
+  return rowToConsultation(data as ConsultationRow);
+}
+
+/**
  * Horas ya reservadas (turnos_reservados) para un doctor, agrupadas por
  * fecha, dentro de un conjunto de fechas dado. Se usa para no mostrar como
  * disponibles horarios que ya tiene otro paciente — lib/availability.ts es

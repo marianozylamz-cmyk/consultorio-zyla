@@ -13,19 +13,19 @@ interface Paso {
 
 const PASOS: Paso[] = [
   {
-    numero: '01',
+    numero: '1',
     icono: IconClock,
     titulo: 'Elegí tu horario',
     descripcion: `Consultá la disponibilidad en tiempo real. Si el Dr. está disponible ahora, ingresá en segundos. Si prefieres otro momento, elegí dentro de la próxima semana.`,
   },
   {
-    numero: '02',
+    numero: '2',
     icono: IconCard,
     titulo: 'Abonás en línea',
     descripcion: `El pago de $${doctorProfile.consultaOnline.precio.toLocaleString('es-AR')} se confirma antes de empezar. Todos los medios, totalmente seguro. Los ${doctorProfile.consultaOnline.duracionMinutos} minutos son exclusivos para vos.`,
   },
   {
-    numero: '03',
+    numero: '3',
     icono: IconVideo,
     titulo: 'Videollamada privada',
     descripcion: `Entrás a tu sala de video con un link personal. Después: receta, certificado e indicaciones por email. Todo documentado.`,
