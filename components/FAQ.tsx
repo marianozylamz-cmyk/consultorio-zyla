@@ -17,7 +17,7 @@ const PREGUNTAS = [
   },
   {
     q: '¿Qué pasa si no puedo entrar a la videollamada?',
-    a: 'Escribinos por WhatsApp y te ayudamos al toque.',
+    a: 'Escribinos por WhatsApp y te ayudamos a la brevedad.',
   },
 ];
 
