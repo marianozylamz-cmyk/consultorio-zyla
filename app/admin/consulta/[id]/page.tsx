@@ -7,6 +7,7 @@ import { CertificadoModal } from "@/components/CertificadoModal";
 import { SolicitudSecretariaModal } from "@/components/SolicitudSecretariaModal";
 import { IconCheck } from "@/components/icons";
 import { doctorProfile } from "@/data/doctorProfile";
+import { formatFechaLargaAR, toISODate } from "@/lib/availability";
 
 const TIPOS: { value: DocumentType; label: string }[] = [
   { value: "receta", label: "Receta" },
@@ -46,7 +47,20 @@ export default function AdminConsultaDetalle({ params }: { params: { id: string 
   }, [params.id]);
 
   async function cambiarEstado(accion: "atender" | "llamada" | "finalizar", estado: Consultation["estado"]) {
-    if (accionEnCurso) return;
+    if (accionEnCurso || !consultation) return;
+
+    // "Atender" en un turno agendado revela el botón de videollamada en la
+    // sala de espera del paciente de inmediato — si es un turno para dentro
+    // de unos días y no para hoy, confirmamos antes de hacerlo: sin esto,
+    // un click apurado en la fila equivocada del panel adelanta la consulta
+    // sin que corresponda todavía.
+    if (accion === "atender" && !consultation.esAhora && consultation.fecha !== toISODate(new Date())) {
+      const confirmar = window.confirm(
+        `Este turno es para el ${formatFechaLargaAR(consultation.fecha)} a las ${consultation.hora} hs, no hoy. ¿Atender igual?`
+      );
+      if (!confirmar) return;
+    }
+
     setAccionEnCurso(accion);
     try {
       await fetch(`/api/consultations/${params.id}`, {

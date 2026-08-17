@@ -324,3 +324,12 @@ export function formatFechaLargaAR(iso: string): string {
   });
   return texto.charAt(0).toUpperCase() + texto.slice(1);
 }
+
+/** Fecha corta "19/08" — para listas donde no entra (ni hace falta) el formato largo. */
+export function formatFechaCortaAR(iso: string): string {
+  return fechaDesdeISO(iso).toLocaleDateString("es-AR", {
+    timeZone: TIMEZONE,
+    day: "2-digit",
+    month: "2-digit",
+  });
+}

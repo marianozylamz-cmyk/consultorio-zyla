@@ -5,7 +5,13 @@ import Link from "next/link";
 import { Consultation, AvailabilityConfig, Weekday } from "@/types";
 import { doctorProfile } from "@/data/doctorProfile";
 import { IconBell } from "@/components/icons";
-import { esAtencionEspecialHoy, estaDentroDelHorarioHabitual, rangoHorarioValido, toISODate } from "@/lib/availability";
+import {
+  esAtencionEspecialHoy,
+  estaDentroDelHorarioHabitual,
+  formatFechaCortaAR,
+  rangoHorarioValido,
+  toISODate,
+} from "@/lib/availability";
 import { ExcepcionesEditor } from "@/components/ExcepcionesEditor";
 
 const DIAS: { key: Weekday; label: string }[] = [
@@ -54,7 +60,10 @@ export default function AdminDashboard() {
         const cJson: Consultation[] = await cRes.json();
         const aJson: AvailabilityConfig = await aRes.json();
 
-        const waitingNow = new Set(cJson.filter((c) => c.estado === "esperando").map((c) => c.id));
+        const hoyISOPoll = toISODate(new Date());
+        const waitingNow = new Set(
+          cJson.filter((c) => c.estado === "esperando" && (c.esAhora || c.fecha === hoyISOPoll)).map((c) => c.id)
+        );
         const hayNuevas = [...waitingNow].some((id) => !previousWaitingIds.current.has(id));
         if (hayNuevas && previousWaitingIds.current.size >= 0) {
           setHuboAlertaSonora(true);
@@ -81,8 +90,20 @@ export default function AdminDashboard() {
     };
   }, []);
 
-  const esperando = consultations.filter((c) => c.estado === "esperando");
-  const hoy = consultations.filter((c) => c.estado !== "rechazada");
+  const hoyISO = toISODate(new Date());
+  // El banner urgente ("está esperando", con botón Atender) es para cuando
+  // hay alguien esperando DE VERDAD en este momento — atención inmediata, o
+  // un turno agendado que ya llegó a su fecha. Un turno confirmado para
+  // dentro de unos días también queda en estado "esperando" (el pago ya se
+  // aprobó), pero mostrarlo acá con el mismo cartel de urgencia confundía:
+  // parecía que había un paciente esperando ahora mismo cuando en realidad
+  // faltaban días.
+  const esperandoAhora = consultations.filter(
+    (c) => c.estado === "esperando" && (c.esAhora || c.fecha === hoyISO)
+  );
+  // No es solo "de hoy" pese al nombre viejo: incluye cualquier fecha, por
+  // eso cada item de la lista siempre muestra fecha además de hora.
+  const listado = consultations.filter((c) => c.estado !== "rechazada");
 
   async function toggleActivo() {
     if (!availability) return;
@@ -164,16 +185,16 @@ export default function AdminDashboard() {
         )}
 
         {/* ALERTA NUEVA CONSULTA */}
-        {esperando.length > 0 && (
+        {esperandoAhora.length > 0 && (
           <div className="animate-fadeIn rounded-xl2 border border-amber-200 bg-amber-50 p-5">
             <div className="mb-3 flex items-center gap-2 text-amber-800">
               <IconBell className="h-5 w-5" />
               <span className="font-semibold">
-                {esperando.length === 1 ? "Nueva consulta" : `${esperando.length} consultas esperando`}
+                {esperandoAhora.length === 1 ? "Nueva consulta" : `${esperandoAhora.length} consultas esperando`}
               </span>
             </div>
             <div className="space-y-3">
-              {esperando.map((c) => (
+              {esperandoAhora.map((c) => (
                 <div
                   key={c.id}
                   className="flex flex-col gap-3 rounded-xl bg-white p-4 sm:flex-row sm:items-center sm:justify-between"
@@ -299,12 +320,13 @@ export default function AdminDashboard() {
                 <div key={i} className="skeleton-card !h-16" />
               ))}
             </div>
-          ) : hoy.length === 0 ? (
+          ) : listado.length === 0 ? (
             <div className="card text-center text-sm text-muted">Todavía no hay consultas registradas.</div>
           ) : (
             <div className="space-y-2.5">
-              {hoy.map((c) => {
+              {listado.map((c) => {
                 const estado = ESTADO_LABEL[c.estado];
+                const esHoy = c.esAhora || c.fecha === hoyISO;
                 return (
                   <Link
                     key={c.id}
@@ -313,7 +335,7 @@ export default function AdminDashboard() {
                   >
                     <div>
                       <p className="font-medium text-ink">
-                        {c.hora} — {c.paciente.nombre}
+                        {esHoy ? "Hoy" : formatFechaCortaAR(c.fecha)} · {c.hora} — {c.paciente.nombre}
                       </p>
                       <p className="text-sm text-muted">${c.precio.toLocaleString("es-AR")}</p>
                     </div>

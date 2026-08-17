@@ -63,9 +63,16 @@ class EmailNotificationService implements NotificationChannel {
     const linkAdmin = `${baseUrl}/admin/consulta/${consultation.id}`;
     const p = consultation.paciente;
 
+    // La fecha/hora va en la primera línea, no solo en la lista de abajo:
+    // si es un turno para dentro de unos días, tiene que quedar clarísimo
+    // desde el asunto/primer vistazo que NO es algo para atender ahora.
+    const cuando = consultation.esAhora
+      ? "ahora mismo (atención inmediata)"
+      : `para el ${formatFechaLargaAR(consultation.fecha)} a las ${consultation.hora} hs`;
+
     const html = `
       <p><strong>🩺 Nueva reserva confirmada</strong></p>
-      <p>${p.nombre} reservó una consulta online y el pago quedó confirmado.</p>
+      <p>${p.nombre} reservó una consulta online ${cuando}. El pago quedó confirmado.</p>
       <p>
         Paciente: ${p.nombre}<br>
         DNI: ${p.dni}<br>
@@ -75,7 +82,10 @@ class EmailNotificationService implements NotificationChannel {
       </p>
       ${botonEmail(linkAdmin, "Abrir consulta en el panel")}
     `;
-    await enviarEmail({ to: destinatarios, subject: "Nueva reserva confirmada", html });
+    const asunto = consultation.esAhora
+      ? "Nueva consulta AHORA — paciente esperando"
+      : `Turno confirmado para el ${formatFechaLargaAR(consultation.fecha)}`;
+    await enviarEmail({ to: destinatarios, subject: asunto, html });
     return { canal: "email", mensaje, enviadoEn: new Date().toISOString() };
   }
 }
