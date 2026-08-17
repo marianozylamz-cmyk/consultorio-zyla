@@ -44,13 +44,38 @@ class EmailNotificationService implements NotificationChannel {
   canal: "email" = "email";
   async enviar(consultation: Consultation): Promise<NotificationLog> {
     const mensaje = mensajeNuevaConsulta(consultation);
+
+    // Médico y secretaria por variable de entorno, no hardcodeado. Si
+    // alguna no está configurada, se manda igual a la que sí esté — nunca
+    // se rompe la notificación por faltar una sola dirección.
+    const destinatarios = [process.env.DOCTOR_NOTIFICATION_EMAIL, process.env.SECRETARY_NOTIFICATION_EMAIL]
+      .filter((email): email is string => Boolean(email))
+      .join(", ");
+
+    if (!destinatarios) {
+      console.warn(
+        "[EmailNotificationService] DOCTOR_NOTIFICATION_EMAIL/SECRETARY_NOTIFICATION_EMAIL no configurados — no se mandó el aviso de nueva reserva."
+      );
+      return { canal: "email", mensaje, enviadoEn: new Date().toISOString() };
+    }
+
+    const baseUrl = process.env.APP_BASE_URL ?? "http://localhost:3000";
+    const linkAdmin = `${baseUrl}/admin/consulta/${consultation.id}`;
+    const p = consultation.paciente;
+
     const html = `
-      <p><strong>🩺 Nueva consulta online</strong></p>
-      <p>${consultation.paciente.nombre} está esperando.</p>
-      <p>Consulta de ${consultation.duracionMinutos} minutos · Pago confirmado.</p>
-      <p><a href="${process.env.APP_BASE_URL ?? "http://localhost:3000"}/admin">Entrar al panel</a></p>
+      <p><strong>🩺 Nueva reserva confirmada</strong></p>
+      <p>${p.nombre} reservó una consulta online y el pago quedó confirmado.</p>
+      <p>
+        Paciente: ${p.nombre}<br>
+        DNI: ${p.dni}<br>
+        Fecha: ${formatFechaLargaAR(consultation.fecha)}<br>
+        Hora: ${consultation.hora} hs<br>
+        WhatsApp: ${p.whatsapp}
+      </p>
+      ${botonEmail(linkAdmin, "Abrir consulta en el panel")}
     `;
-    await enviarEmail({ to: doctorProfile.contacto.emailNotificaciones, subject: "Nueva consulta online", html });
+    await enviarEmail({ to: destinatarios, subject: "Nueva reserva confirmada", html });
     return { canal: "email", mensaje, enviadoEn: new Date().toISOString() };
   }
 }

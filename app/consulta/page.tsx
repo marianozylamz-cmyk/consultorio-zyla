@@ -494,7 +494,7 @@ export default function ConsultaPage() {
 
             <p className="text-center text-xs text-muted">
               Pago seguro procesado por Mercado Pago. Podés pagar con tarjeta de crédito o débito,
-              dinero en cuenta o efectivo — no hace falta tener cuenta de Mercado Pago.
+              o con dinero en cuenta de Mercado Pago — no hace falta tener cuenta para pagar con tarjeta.
             </p>
 
             <button className="text-sm text-muted hover:text-ink" onClick={() => setStep("horario")}>

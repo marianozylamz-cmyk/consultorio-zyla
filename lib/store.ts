@@ -306,6 +306,31 @@ export async function updateConsultation(
 }
 
 /**
+ * Igual que updateConsultation, pero atómico: solo aplica el patch (y
+ * devuelve la fila) si el estado ANTES del update era `estadoEsperado`. Si
+ * ya cambió (por ejemplo, Mercado Pago mandó la misma notificación de pago
+ * dos veces casi en simultáneo), devuelve undefined y no vuelve a
+ * escribir nada — evita el mail duplicado al médico/secretaria y una
+ * doble notificación al paciente en el caso de dos webhooks concurrentes.
+ */
+export async function updateConsultationSiEstadoEs(
+  id: string,
+  estadoEsperado: ConsultationStatus,
+  patch: Partial<Consultation>
+): Promise<Consultation | undefined> {
+  const { data, error } = await supabaseAdmin
+    .from("consultations")
+    .update(partialConsultationToRow(patch))
+    .eq("id", id)
+    .eq("estado", estadoEsperado)
+    .select("*")
+    .maybeSingle();
+
+  if (error) throw new Error(`No se pudo actualizar la consulta ${id}: ${error.message}`);
+  return data ? rowToConsultation(data as ConsultationRow) : undefined;
+}
+
+/**
  * Candidatas a recordatorio: turnos agendados (no "ahora"), pagados y
  * confirmados (`esperando`), que todavía no recibieron el mail. El filtro
  * de fecha/hora exacto ("¿falta menos de 1 hora?") se hace en JS sobre este

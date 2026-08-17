@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { consultarPago } from "@/lib/mercadopago";
-import { getConsultation, updateConsultation } from "@/lib/store";
+import { getConsultation, liberarTurnoDeConsulta, updateConsultationSiEstadoEs } from "@/lib/store";
 import { notificationService } from "@/services/notificationService";
 
 // ==========================================================
@@ -39,8 +39,14 @@ export async function POST(req: Request) {
       return NextResponse.json({ recibido: true });
     }
 
-    if (pago.status === "approved" && consultation.estado === "pendiente_pago") {
-      const updated = await updateConsultation(consultation.id, {
+    if (pago.status === "approved") {
+      // Update atómico condicionado al estado previo: si dos notificaciones
+      // del mismo pago llegan casi en simultáneo (MP reintenta, o a veces
+      // manda el mismo evento más de una vez por diseño), solo la primera
+      // encuentra la fila todavía en "pendiente_pago" y hace el cambio —
+      // la segunda no encuentra nada para actualizar y no dispara un mail
+      // duplicado al médico/secretaria ni al paciente.
+      const updated = await updateConsultationSiEstadoEs(consultation.id, "pendiente_pago", {
         estado: "esperando",
         pago: {
           ...consultation.pago,
@@ -56,11 +62,18 @@ export async function POST(req: Request) {
           await notificationService.notifyPatientBookingConfirmed(updated);
         }
       }
-    } else if (pago.status === "rejected" && consultation.estado === "pendiente_pago") {
-      await updateConsultation(consultation.id, {
+    } else if (pago.status === "rejected") {
+      const updated = await updateConsultationSiEstadoEs(consultation.id, "pendiente_pago", {
         estado: "rechazada",
         pago: { ...consultation.pago, estado: "rechazado", metodo: "mercadopago", mpPaymentId: String(pago.id) },
       });
+      if (updated) {
+        // Sin esto, un pago rechazado con Mercado Pago real dejaba el
+        // horario bloqueado para siempre — el pago mock y el PATCH
+        // genérico ya liberaban el turno acá, este camino se había
+        // quedado afuera.
+        await liberarTurnoDeConsulta(updated.id);
+      }
     }
 
     return NextResponse.json({ recibido: true });

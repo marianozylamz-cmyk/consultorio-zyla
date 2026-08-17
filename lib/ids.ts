@@ -1,15 +1,15 @@
 // ==========================================================
-// Generadores de ID puros — no tocan ninguna base de datos, así
-// que viven separados de lib/store.ts (que ahora es 100% acceso
-// a datos vía Supabase). Separarlos evita que un archivo mezcle
-// dos responsabilidades distintas.
+// Generador de IDs — no toca ninguna base de datos, así que vive
+// separado de lib/store.ts (que es 100% acceso a datos).
+//
+// Usa crypto.randomUUID() (nativo, sin dependencias) y no
+// Math.random(): el id de una consulta funciona como link privado
+// de facto (GET /api/consultations/[id] no pide autenticación —
+// es lo que usa el paciente para ver su propia sala de espera), así
+// que tiene que ser realmente no adivinable. Math.random() no da
+// esa garantía.
 // ==========================================================
 
 export function genId(prefix: string) {
-  return `${prefix}_${Math.random().toString(36).slice(2, 10)}${Date.now().toString(36)}`;
-}
-
-export function genToken() {
-  // token largo, no predecible, para usos como el id de sala de video
-  return Array.from({ length: 4 }, () => Math.random().toString(36).slice(2, 10)).join("");
+  return `${prefix}_${crypto.randomUUID()}`;
 }
