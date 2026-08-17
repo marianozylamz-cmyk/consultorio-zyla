@@ -102,6 +102,9 @@ export default function SalaDeEspera({ params }: { params: { id: string } }) {
                 >
                   Entrar a la consulta
                 </a>
+                <p className="mt-3 text-xs text-muted">
+                  Al entrar, escribí tu nombre y apellido — así el Dr. Zyla sabe que sos vos.
+                </p>
               </>
             ) : (
               <>

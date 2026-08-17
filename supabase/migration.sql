@@ -51,3 +51,27 @@ create table if not exists consultations (
 create index if not exists consultations_estado_idx on consultations (estado);
 create index if not exists consultations_fecha_idx on consultations (fecha);
 create index if not exists consultations_creada_en_idx on consultations (creada_en desc);
+
+-- ==========================================================
+-- `consultations.es_ahora` — distingue un turno agendado (recibe
+-- mail de confirmación con fecha/hora) de una atención inmediata
+-- por "Atender ahora" (el paciente ya está esperando en el momento,
+-- no hace falta mandarle mail confirmando algo que ya está viendo
+-- en pantalla).
+--
+-- Correr a mano en el SQL Editor de Supabase.
+alter table consultations add column if not exists es_ahora boolean not null default false;
+
+-- ==========================================================
+-- `consultations.recordatorio_enviado_at` — timestamp (no boolean)
+-- a propósito: además de marcar "ya se mandó", sirve como traba
+-- atómica para el cron de recordatorios (ver
+-- lib/store.ts:reclamarRecordatorio). El endpoint hace
+-- `update ... where recordatorio_enviado_at is null`, así que si
+-- GitHub Actions llega a correr el job dos veces pisado, la segunda
+-- corrida encuentra la fila ya tomada y no reintenta el envío —
+-- sin esto (con un booleano seteado recién después de enviar)
+-- quedaría una ventana de carrera real.
+--
+-- Correr a mano en el SQL Editor de Supabase.
+alter table consultations add column if not exists recordatorio_enviado_at timestamptz;

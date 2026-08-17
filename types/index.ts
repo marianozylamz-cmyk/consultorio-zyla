@@ -83,6 +83,8 @@ export interface Consultation {
   paciente: Patient;
   fecha: string; // ISO date
   hora: string; // "17:30"
+  esAhora: boolean; // true = reservada por "Atender ahora" (atención inmediata), no un turno agendado
+  recordatorioEnviadoAt: string | null; // ISO timestamp — null hasta que se manda el recordatorio de 1hs antes
   precio: number;
   duracionMinutos: number;
   estado: ConsultationStatus;

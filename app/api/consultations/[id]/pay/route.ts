@@ -50,6 +50,9 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     if (updated) {
       const notificaciones = await notificationService.notifyDoctorNewConsultation(updated);
       await updateConsultation(consultation.id, { notificaciones });
+      if (!updated.esAhora) {
+        await notificationService.notifyPatientBookingConfirmed(updated);
+      }
     }
 
     const final = await getConsultation(consultation.id);

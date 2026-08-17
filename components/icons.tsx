@@ -126,6 +126,15 @@ export function IconBell({ className }: { className?: string }) {
   );
 }
 
+export function IconSearch({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} {...common} stroke="currentColor">
+      <circle cx="10.5" cy="10.5" r="6.5" />
+      <path d="M19.5 19.5l-4.35-4.35" />
+    </svg>
+  );
+}
+
 // Glyph oficial de WhatsApp (relleno, no stroke) — reemplaza a la versión
 // dibujada a mano que se repetía en varios archivos y que quedaba con el
 // círculo cortado y sin la "colita" del globo.

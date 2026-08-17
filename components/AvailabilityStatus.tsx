@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { IconCalendarCheck, IconClock } from "./icons";
 
 interface AvailabilityData {
   disponibleAhora: boolean;
@@ -60,26 +61,20 @@ export function AvailabilityStatus({
   }
 
   const disponibleAhora = data.disponibleAhora;
+  const Icon = disponibleAhora ? IconCalendarCheck : IconClock;
 
   return (
     <div
-      className={`inline-flex items-center gap-2.5 rounded-full px-4 py-2 text-sm font-semibold transition-all duration-300 ${
+      className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition-colors duration-300 ${
         disponibleAhora
-          ? "bg-[#D4F1E8] text-[#1B6E5C]"
-          : "bg-[#F4EFE4] text-muted"
+          ? "border-[#1B6E5C]/20 bg-[#D4F1E8]/70 text-[#1B6E5C]"
+          : "border-[#E5E9F0] bg-[#F4EFE4] text-muted"
       } ${compact ? "!py-1.5 !px-3 !text-xs" : ""}`}
     >
-      <span
-        className={`h-2 w-2 rounded-full transition-all duration-300 ${
-          disponibleAhora
-            ? "bg-[#1B6E5C] animate-pulseSoft"
-            : "bg-[#7A8499]"
-        }`}
-        aria-hidden="true"
-      />
+      <Icon className={`shrink-0 ${compact ? "h-3.5 w-3.5" : "h-4 w-4"}`} />
 
       <span className="whitespace-nowrap">
-        {disponibleAhora ? "Disponible ahora" : "No disponible ahora"}
+        {disponibleAhora ? "Consultas disponibles ahora" : "Fuera de horario"}
       </span>
     </div>
   );

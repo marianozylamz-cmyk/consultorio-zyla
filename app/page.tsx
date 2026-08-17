@@ -6,7 +6,16 @@ import { AvailabilityStatus } from '@/components/AvailabilityStatus';
 import { PulseDivider } from '@/components/PulseDivider';
 import { HowItWorks } from '@/components/HowItWorks';
 import { ServiciosGrid } from '@/components/ServiciosGrid';
-import { IconPin, IconPhone, IconClock, IconWhatsApp } from '@/components/icons';
+import {
+  IconPin,
+  IconPhone,
+  IconClock,
+  IconWhatsApp,
+  IconVideo,
+  IconCheck,
+  IconStethoscope,
+  IconSearch,
+} from '@/components/icons';
 import { doctorProfile } from '@/data/doctorProfile';
 import { HorarioResumen } from '@/components/HorarioResumen';
 import { linkWhatsAppConsultorio } from '@/lib/whatsapp';
@@ -14,11 +23,6 @@ import { linkWhatsAppConsultorio } from '@/lib/whatsapp';
 export default function LandingPage() {
   const d = doctorProfile;
   const precioFormateado = d.consultaOnline.precio.toLocaleString('es-AR');
-  const iniciales = d.nombre
-    .split(' ')
-    .map((p) => p[0])
-    .slice(0, 2)
-    .join('');
 
   return (
     <main className="min-h-screen bg-white">
@@ -27,23 +31,11 @@ export default function LandingPage() {
       {/* ===== HERO ===== */}
       <section className="container-max pb-16 pt-12 sm:pb-20 sm:pt-20 md:pt-24">
         <div className="animate-fadeIn">
-          {/* Avatar + Ubicación */}
-          <div className="mb-8 flex items-center gap-4 sm:mb-10">
-            <div
-              className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full 
-                bg-gradient-to-br from-[#1B6E5C] to-[#155245] text-[15px] font-bold text-white 
-                shadow-card sm:h-16 sm:w-16 sm:text-base"
-            >
-              {iniciales}
-            </div>
-            <div>
-              <p className="flex items-center gap-1.5 text-sm font-semibold text-[#2C3E50]">
-                <IconPin className="h-4 w-4 text-[#1B6E5C] shrink-0" />
-                {d.ciudad}, {d.provincia}
-              </p>
-              <p className="text-xs text-muted mt-1">Disponible para consultas online</p>
-            </div>
-          </div>
+          {/* Ubicación */}
+          <p className="mb-5 flex items-center gap-1.5 text-sm font-semibold text-[#1B6E5C] sm:mb-6">
+            <IconPin className="h-4 w-4 shrink-0" />
+            {d.ciudad}, {d.provincia}
+          </p>
 
           {/* Titulo principal */}
           <h1
@@ -60,8 +52,8 @@ export default function LandingPage() {
 
           {/* Descripción */}
           <p className="mt-6 max-w-2xl text-lg leading-relaxed text-muted sm:mt-8 md:text-xl">
-            Consultas médicas online sin salir de casa. Desde tu dispositivo, en segundos, hablá
-            cara a cara con un especialista en medicina clínica.
+            Consultas médicas online, estés donde estés. Hablá con el Dr. Juan Manuel Zyla desde
+            la comodidad de tu casa, sin turnos ni traslados.
           </p>
 
           {/* CTAs principales */}
@@ -85,8 +77,9 @@ export default function LandingPage() {
           >
             <div className="mb-6 flex items-center justify-between gap-4">
               <div>
-                <p className="text-xs font-bold uppercase tracking-widest text-muted mb-2">
-                  <span aria-hidden="true">💻</span> Consultas Online
+                <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-muted mb-2">
+                  <IconVideo className="h-3.5 w-3.5 text-[#1B6E5C]" />
+                  Consultas Online
                 </p>
                 <p className="text-sm text-muted">Todos los días</p>
                 <p className="text-2xl font-bold text-[#2C3E50] mt-1">
@@ -97,7 +90,7 @@ export default function LandingPage() {
             </div>
 
             <div className="border-t border-[#E5E9F0] pt-6 grid grid-cols-2 gap-6">
- <div>
+              <div>
                 <p className="text-xs font-semibold uppercase text-muted mb-2">
                   Horario
                 </p>
@@ -136,6 +129,15 @@ export default function LandingPage() {
           <p className="text-lg leading-relaxed text-[#172033]">
             {d.sobreMi}
           </p>
+          <a
+            href="https://miperfil.ar/perfiles/jmzyla/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-[#1B6E5C] transition-colors hover:text-[#155245]"
+          >
+            <IconSearch className="h-4 w-4 shrink-0" />
+            Ver perfil profesional en MiPerfil.ar
+          </a>
         </div>
       </section>
 
@@ -197,27 +199,30 @@ export default function LandingPage() {
         <div className="container-max">
           <div className="grid gap-8 sm:grid-cols-3 mb-8">
             <div>
-              <p className="text-xs font-bold uppercase tracking-widest text-muted mb-3">
-                <span aria-hidden="true">🕐</span> Rápido
+              <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-muted mb-3">
+                <IconClock className="h-3.5 w-3.5 text-[#1B6E5C]" />
+                Rápido
               </p>
               <p className="text-sm text-[#172033]">
                 Reservá en segundos sin crear cuenta ni pasar por trámites.
               </p>
             </div>
             <div>
-              <p className="text-xs font-bold uppercase tracking-widest text-muted mb-3">
-                <span aria-hidden="true">🔒</span> Seguro
+              <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-muted mb-3">
+                <IconCheck className="h-3.5 w-3.5 text-[#1B6E5C]" />
+                Seguro
               </p>
               <p className="text-sm text-[#172033]">
-                Pago encriptado. Todos los medios. Tu privacidad protegida.
+                Pago gestionado por Mercado Pago, con todos los medios disponibles.
               </p>
             </div>
             <div>
-              <p className="text-xs font-bold uppercase tracking-widest text-muted mb-3">
-                <span aria-hidden="true">🎯</span> Profesional
+              <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-muted mb-3">
+                <IconStethoscope className="h-3.5 w-3.5 text-[#1B6E5C]" />
+                Documentado
               </p>
               <p className="text-sm text-[#172033]">
-                Médico especialista. Sala privada. Certificados incluidos.
+                Sala privada y certificados de la consulta cuando corresponda.
               </p>
             </div>
           </div>

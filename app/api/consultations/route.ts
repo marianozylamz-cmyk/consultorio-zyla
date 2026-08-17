@@ -77,6 +77,8 @@ export async function POST(req: Request) {
     paciente: body.paciente,
     fecha: body.fecha,
     hora: body.hora,
+    esAhora: Boolean(body.esAhora),
+    recordatorioEnviadoAt: null,
     precio: doctorProfile.consultaOnline.precio,
     duracionMinutos: doctorProfile.consultaOnline.duracionMinutos,
     estado: "pendiente_pago",

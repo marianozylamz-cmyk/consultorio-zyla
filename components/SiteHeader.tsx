@@ -26,8 +26,8 @@ export function SiteHeader({ fixed = true }: SiteHeaderProps) {
       <div className="container-max flex items-center justify-between py-4">
         {/* LOGO / BRANDING */}
         <Link href="/" className="group flex flex-col gap-0.5 transition-all duration-300">
-          <div className="text-[15px] font-bold tracking-tight text-[#2C3E50] group-hover:text-[#1B6E5C] transition-colors">
-            Dr. Juan Zyla
+          <div className="text-sm font-bold tracking-tight text-[#2C3E50] group-hover:text-[#1B6E5C] transition-colors sm:text-[15px]">
+            Dr. Juan Manuel Zyla
           </div>
           <div className="text-xs text-muted group-hover:text-[#1B6E5C]/70 transition-colors">
             Medicina Clínica

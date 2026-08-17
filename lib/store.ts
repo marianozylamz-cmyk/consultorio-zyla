@@ -167,6 +167,8 @@ interface ConsultationRow {
   paciente: Patient;
   fecha: string;
   hora: string;
+  es_ahora: boolean;
+  recordatorio_enviado_at: string | null;
   precio: number;
   duracion_minutos: number;
   estado: ConsultationStatus;
@@ -183,6 +185,8 @@ function rowToConsultation(row: ConsultationRow): Consultation {
     paciente: row.paciente,
     fecha: row.fecha,
     hora: row.hora,
+    esAhora: row.es_ahora,
+    recordatorioEnviadoAt: row.recordatorio_enviado_at,
     precio: Number(row.precio),
     duracionMinutos: row.duracion_minutos,
     estado: row.estado,
@@ -200,6 +204,7 @@ function consultationToInsertRow(c: Consultation) {
     paciente: c.paciente,
     fecha: c.fecha,
     hora: c.hora,
+    es_ahora: c.esAhora,
     precio: c.precio,
     duracion_minutos: c.duracionMinutos,
     estado: c.estado,
@@ -297,6 +302,46 @@ export async function updateConsultation(
     .maybeSingle();
 
   if (error) throw new Error(`No se pudo actualizar la consulta ${id}: ${error.message}`);
+  return data ? rowToConsultation(data as ConsultationRow) : undefined;
+}
+
+/**
+ * Candidatas a recordatorio: turnos agendados (no "ahora"), pagados y
+ * confirmados (`esperando`), que todavía no recibieron el mail. El filtro
+ * de fecha/hora exacto ("¿falta menos de 1 hora?") se hace en JS sobre este
+ * resultado — acá solo se recorta a lo estrictamente relevante para no
+ * traer turnos rechazados, ya atendidos o de otro tipo.
+ */
+export async function listConsultationsParaRecordatorio(): Promise<Consultation[]> {
+  const { data, error } = await supabaseAdmin
+    .from("consultations")
+    .select("*")
+    .eq("estado", "esperando")
+    .eq("es_ahora", false)
+    .is("recordatorio_enviado_at", null);
+
+  if (error) throw new Error(`No se pudieron listar las consultas para recordatorio: ${error.message}`);
+  return ((data as ConsultationRow[]) ?? []).map(rowToConsultation);
+}
+
+/**
+ * "Reclama" el envío del recordatorio de forma atómica: solo actualiza (y
+ * devuelve la fila) si `recordatorio_enviado_at` todavía era null. Si otra
+ * ejecución del cron ya lo tomó primero, devuelve undefined — el llamador
+ * usa eso para NO mandar el mail de nuevo. Por diseño, se marca ANTES de
+ * mandar el mail (no después): prioriza no duplicar sobre reintentar un
+ * envío que falló por una falla transitoria de SMTP.
+ */
+export async function reclamarRecordatorio(id: string): Promise<Consultation | undefined> {
+  const { data, error } = await supabaseAdmin
+    .from("consultations")
+    .update({ recordatorio_enviado_at: new Date().toISOString() })
+    .eq("id", id)
+    .is("recordatorio_enviado_at", null)
+    .select("*")
+    .maybeSingle();
+
+  if (error) throw new Error(`No se pudo reclamar el recordatorio de la consulta ${id}: ${error.message}`);
   return data ? rowToConsultation(data as ConsultationRow) : undefined;
 }
 

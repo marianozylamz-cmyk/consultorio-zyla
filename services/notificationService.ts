@@ -1,6 +1,8 @@
-import { Consultation, NotificationLog } from "@/types";
+import { Consultation, DocumentFile, NotificationLog } from "@/types";
 import { doctorProfile } from "@/data/doctorProfile";
-import { enviarEmail } from "@/lib/email";
+import { enviarEmail, dataUrlToAttachment } from "@/lib/email";
+import { DOCUMENT_TYPE_LABEL } from "@/lib/documentLabels";
+import { formatFechaLargaAR } from "@/lib/availability";
 
 // ==========================================================
 // Sistema de notificaciones al médico. Juan puede estar en
@@ -26,6 +28,16 @@ interface NotificationChannel {
 
 function mensajeNuevaConsulta(consultation: Consultation) {
   return `🩺 NUEVA CONSULTA ONLINE\n${consultation.paciente.nombre} está esperando.\nConsulta: ${consultation.duracionMinutos} minutos\nPago: Confirmado`;
+}
+
+function linkEsperaDe(consultation: Consultation): string {
+  const baseUrl = process.env.APP_BASE_URL ?? "http://localhost:3000";
+  return `${baseUrl}/consulta/${consultation.id}/espera`;
+}
+
+/** Botón con estilos inline — los clientes de mail ignoran <style>/clases, así que va todo en el atributo. */
+function botonEmail(href: string, texto: string): string {
+  return `<p style="margin:24px 0"><a href="${href}" style="background:#1B6E5C;color:#ffffff;padding:12px 24px;border-radius:9999px;text-decoration:none;font-weight:600;display:inline-block">${texto}</a></p>`;
 }
 
 class EmailNotificationService implements NotificationChannel {
@@ -79,12 +91,60 @@ class NotificationService {
     return results;
   }
 
-  // Nota: el envío de documentos/certificados al paciente por mail NO pasa
-  // por acá — un mailto: no puede adjuntar un archivo automáticamente
-  // (limitación real del estándar, no de esta app), así que ese flujo es
-  // 100% del lado del cliente: descarga el archivo y abre el cliente de
-  // correo del médico con destinatario/asunto/cuerpo ya completos. Ver
-  // enviarDocumento() en app/admin/consulta/[id]/page.tsx.
+  /**
+   * Manda el documento (receta/certificado/indicaciones) al paciente por
+   * mail, como adjunto real — un solo clic del médico, sin que tenga que
+   * escribir nada a mano. Devuelve `enviado: false` si no hay SMTP
+   * configurado (en vez de tirar error), para que el llamador decida cómo
+   * avisarlo.
+   */
+  async sendDocumentToPatient(consultation: Consultation, doc: DocumentFile): Promise<{ enviado: boolean }> {
+    const attachment = dataUrlToAttachment(doc.dataUrl, doc.nombre);
+    const tipoLabel = DOCUMENT_TYPE_LABEL[doc.tipo];
+    const asunto = `${tipoLabel} — Dr. ${doctorProfile.nombre}`;
+    const html = `
+      <p>Hola ${consultation.paciente.nombre},</p>
+      <p>Te envío tu ${tipoLabel.toLowerCase()} de la consulta del ${formatFechaLargaAR(consultation.fecha)}.</p>
+      <p>Encontrás el archivo adjunto a este mail.</p>
+      <p>Saludos,<br>Dr. ${doctorProfile.nombre}</p>
+    `;
+    return enviarEmail({ to: consultation.paciente.email, subject: asunto, html, attachments: [attachment] });
+  }
+
+  /**
+   * Confirmación de turno al paciente — solo para turnos agendados
+   * (`esAhora: false`). Una atención inmediata no necesita este mail: el
+   * paciente ya está viendo la confirmación en pantalla en ese momento.
+   */
+  async notifyPatientBookingConfirmed(consultation: Consultation): Promise<{ enviado: boolean }> {
+    const fecha = formatFechaLargaAR(consultation.fecha);
+    const html = `
+      <p>Hola ${consultation.paciente.nombre},</p>
+      <p>Tu turno con el Dr. ${doctorProfile.nombre} quedó confirmado:</p>
+      <p style="font-size:18px"><strong>${fecha} a las ${consultation.hora} hs</strong></p>
+      <p>Te vamos a avisar de nuevo 1 hora antes. Cuando sea el momento, entrá a tu sala de espera desde acá:</p>
+      ${botonEmail(linkEsperaDe(consultation), "Ingresar a mi sala de espera")}
+      <p>Ante cualquier duda, escribinos por WhatsApp.</p>
+      <p>Saludos,<br>Dr. ${doctorProfile.nombre}</p>
+    `;
+    return enviarEmail({ to: consultation.paciente.email, subject: "Turno confirmado", html });
+  }
+
+  /**
+   * Recordatorio 1 hora antes de un turno agendado. Lleva a la sala de
+   * espera (no directo a Google Meet): ahí es donde se decide si ya
+   * corresponde habilitar el ingreso a la videollamada, no en el mail.
+   */
+  async notifyPatientReminder(consultation: Consultation): Promise<{ enviado: boolean }> {
+    const html = `
+      <p>Hola ${consultation.paciente.nombre},</p>
+      <p>Tu turno con el Dr. ${doctorProfile.nombre} es en aproximadamente 1 hora, a las <strong>${consultation.hora} hs</strong>.</p>
+      <p>Cuando estés listo, entrá a tu sala de espera desde acá:</p>
+      ${botonEmail(linkEsperaDe(consultation), "Ingresar a mi sala de espera")}
+      <p>Saludos,<br>Dr. ${doctorProfile.nombre}</p>
+    `;
+    return enviarEmail({ to: consultation.paciente.email, subject: "Tu turno es en 1 hora", html });
+  }
 }
 
 export const notificationService = new NotificationService();

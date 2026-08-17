@@ -15,13 +15,6 @@ const TIPOS: { value: DocumentType; label: string }[] = [
   { value: "otro", label: "Otro" },
 ];
 
-const TIPO_LABEL: Record<DocumentType, string> = {
-  receta: "Receta",
-  certificado: "Certificado",
-  indicaciones: "Indicaciones",
-  otro: "Documento",
-};
-
 function fileToDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -29,16 +22,6 @@ function fileToDataUrl(file: File): Promise<string> {
     reader.onerror = reject;
     reader.readAsDataURL(file);
   });
-}
-
-/** Dispara la descarga del archivo (ya lo tenemos completo en memoria como data URL). */
-function descargarArchivo(doc: DocumentFile) {
-  const a = document.createElement("a");
-  a.href = doc.dataUrl;
-  a.download = doc.nombre;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
 }
 
 export default function AdminConsultaDetalle({ params }: { params: { id: string } }) {
@@ -101,36 +84,16 @@ export default function AdminConsultaDetalle({ params }: { params: { id: string 
     }
   }
 
-  // Un mailto: no puede llevar un adjunto automático (limitación real del
-  // estándar, no de esta app) — así que el flujo es: descargar el archivo,
-  // abrir el cliente de correo del médico con todo prellenado, y que el
-  // médico adjunte a mano el archivo que se acaba de descargar.
   async function enviarDocumento(doc: DocumentFile) {
-    if (!consultation) return;
     setEnviandoId(doc.id);
+    setAvisoEnvio(null);
     try {
-      descargarArchivo(doc);
-
-      const asunto = `${TIPO_LABEL[doc.tipo]} — Dr. ${doctorProfile.nombre}`;
-      const cuerpo = [
-        `Hola ${consultation.paciente.nombre},`,
-        "",
-        `Te envío tu ${TIPO_LABEL[doc.tipo].toLowerCase()} de la consulta del ${consultation.fecha}.`,
-        `Encontrás el archivo "${doc.nombre}" recién descargado en tu dispositivo — lo adjunto a este mail.`,
-        "",
-        "Saludos,",
-        `Dr. ${doctorProfile.nombre}`,
-      ].join("\n");
-
-      window.location.href = `mailto:${consultation.paciente.email}?subject=${encodeURIComponent(
-        asunto
-      )}&body=${encodeURIComponent(cuerpo)}`;
-
-      setAvisoEnvio(
-        `Se descargó "${doc.nombre}" y se abrió tu cliente de correo — no te olvides de adjuntarlo antes de enviar.`
-      );
-
-      await fetch(`/api/consultations/${params.id}/documents/${doc.id}/send`, { method: "POST" });
+      const res = await fetch(`/api/consultations/${params.id}/documents/${doc.id}/send`, { method: "POST" });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setAvisoEnvio(data.error ?? "No se pudo enviar el documento.");
+        return;
+      }
       await cargar();
     } finally {
       setEnviandoId(null);
@@ -245,7 +208,7 @@ export default function AdminConsultaDetalle({ params }: { params: { id: string 
           </div>
 
           {avisoEnvio && (
-            <div className="mb-4 animate-fadeIn rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            <div className="mb-4 animate-fadeIn rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
               {avisoEnvio}
             </div>
           )}

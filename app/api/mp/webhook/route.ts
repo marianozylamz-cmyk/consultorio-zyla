@@ -52,6 +52,9 @@ export async function POST(req: Request) {
       });
       if (updated) {
         await notificationService.notifyDoctorNewConsultation(updated);
+        if (!updated.esAhora) {
+          await notificationService.notifyPatientBookingConfirmed(updated);
+        }
       }
     } else if (pago.status === "rejected" && consultation.estado === "pendiente_pago") {
       await updateConsultation(consultation.id, {

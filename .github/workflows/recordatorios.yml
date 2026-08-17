@@ -1,0 +1,19 @@
+name: Recordatorios de turno
+
+# Corre cada 15 minutos y le pega a /api/cron/recordatorios, que manda el
+# mail a los pacientes cuyo turno agendado (no "ahora") empieza dentro de
+# la próxima hora. Vercel Hobby no permite cron jobs más frecuentes que
+# 1 vez por día, así que esto vive acá en vez de en vercel.json.
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch: {}
+
+jobs:
+  disparar-recordatorios:
+    runs-on: ubuntu-latest
+    steps:
+      - name: POST a /api/cron/recordatorios
+        run: |
+          curl --fail-with-body -sS -X POST "${{ secrets.APP_BASE_URL }}/api/cron/recordatorios" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"

@@ -93,6 +93,17 @@ export function fechaDesdeISO(iso: string): Date {
   return new Date(`${iso}T12:00:00-03:00`);
 }
 
+/**
+ * Construye el instante exacto (fecha + hora) de un turno, en horario de
+ * Argentina. A diferencia de fechaDesdeISO (mediodía fijo, para comparar
+ * solo días), esto se usa para saber cuánto falta en minutos/horas reales
+ * — ej. el cron de recordatorios. Argentina no tiene horario de verano
+ * desde 2009, así que el offset fijo -03:00 es seguro todo el año.
+ */
+export function fechaHoraDesdeISO(fecha: string, hora: string): Date {
+  return new Date(`${fecha}T${hora}:00-03:00`);
+}
+
 function timeToMinutes(t: string): number {
   const [h, m] = t.split(":").map(Number);
   return h * 60 + m;

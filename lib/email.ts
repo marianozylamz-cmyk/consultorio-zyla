@@ -62,3 +62,11 @@ export async function enviarEmail(input: EnviarEmailInput): Promise<{ enviado: b
 
   return { enviado: true };
 }
+
+/** Convierte un data URL (`data:<mime>;base64,<...>`) en el adjunto que espera nodemailer. */
+export function dataUrlToAttachment(dataUrl: string, filename: string): EmailAttachment {
+  const match = dataUrl.match(/^data:(.+);base64,(.+)$/);
+  if (!match) throw new Error("dataUrl inválida: no tiene el formato esperado");
+  const [, mimeType, base64] = match;
+  return { filename, content: Buffer.from(base64, "base64"), contentType: mimeType };
+}
