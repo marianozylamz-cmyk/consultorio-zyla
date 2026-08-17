@@ -79,6 +79,7 @@ export async function POST(req: Request) {
     hora: body.hora,
     esAhora: Boolean(body.esAhora),
     recordatorioEnviadoAt: null,
+    documentacionEnviadaAt: null,
     precio: doctorProfile.consultaOnline.precio,
     duracionMinutos: doctorProfile.consultaOnline.duracionMinutos,
     estado: "pendiente_pago",

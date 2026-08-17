@@ -17,7 +17,8 @@ const CAMPO_INICIAL: CertificateInput = {
   motivo: '',
   diagnostico: '',
   tratamiento: '',
-  periodoInvalidez: '',
+  licenciaDesde: '',
+  licenciaHasta: '',
   destinatario: '',
   observaciones: '',
 };
@@ -54,10 +55,7 @@ export function CertificadoModal({
       const res = await fetch(`/api/consultations/${consultationId}/certificado`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...datos,
-          pacienteEmail, // NUEVO: para que el backend envíe por email
-        }),
+        body: JSON.stringify(datos),
       });
 
       const json = await res.json();
@@ -115,8 +113,8 @@ export function CertificadoModal({
         {/* ÉXITO */}
         {success && (
           <div className="alert alert-success mb-6 animate-fadeIn">
-            ✓ Certificado generado. Usá &quot;Enviar por mail&quot; en la lista de documentos para
-            mandárselo a <strong>{pacienteEmail}</strong>.
+            ✓ Certificado generado. Usá &quot;Enviar documentación al paciente&quot; cuando tengas
+            todo listo para mandárselo a <strong>{pacienteEmail}</strong>.
           </div>
         )}
 
@@ -177,14 +175,29 @@ export function CertificadoModal({
 
           <div>
             <label className="mb-2 block text-sm font-bold text-[#2C3E50]">
-              Período de invalidez laboral
+              Período de licencia
             </label>
-            <input
-              className="input-field"
-              value={datos.periodoInvalidez}
-              onChange={(e) => actualizar('periodoInvalidez', e.target.value)}
-              placeholder="Ej: del 03/08 al 06/08 (3 días) — dejar vacío si no corresponde"
-            />
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="mb-1 block text-xs text-muted">Desde</label>
+                <input
+                  type="date"
+                  className="input-field"
+                  value={datos.licenciaDesde}
+                  onChange={(e) => actualizar('licenciaDesde', e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs text-muted">Hasta</label>
+                <input
+                  type="date"
+                  className="input-field"
+                  value={datos.licenciaHasta}
+                  onChange={(e) => actualizar('licenciaHasta', e.target.value)}
+                />
+              </div>
+            </div>
+            <p className="mt-1.5 text-xs text-muted">Dejar vacío si no corresponde licencia.</p>
           </div>
 
           <div>
@@ -231,7 +244,7 @@ export function CertificadoModal({
             className="btn-primary flex-1"
             disabled={enviando || matriculaFalta || success}
           >
-            {enviando ? 'Generando...' : success ? '✓ Enviado' : 'Generar y enviar'}
+            {enviando ? 'Generando...' : success ? '✓ Generado' : 'Generar certificado'}
           </button>
         </div>
       </div>

@@ -2,12 +2,14 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Consultation, DocumentFile, DocumentType } from "@/types";
+import { Consultation, DocumentType } from "@/types";
 import { CertificadoModal } from "@/components/CertificadoModal";
+import { ObservacionesModal } from "@/components/ObservacionesModal";
 import { SolicitudSecretariaModal } from "@/components/SolicitudSecretariaModal";
 import { IconCheck } from "@/components/icons";
 import { doctorProfile } from "@/data/doctorProfile";
 import { formatFechaLargaAR, toISODate } from "@/lib/availability";
+import { DOCUMENT_TYPE_LABEL } from "@/lib/documentLabels";
 
 const TIPOS: { value: DocumentType; label: string }[] = [
   { value: "receta", label: "Receta" },
@@ -29,10 +31,11 @@ export default function AdminConsultaDetalle({ params }: { params: { id: string 
   const [consultation, setConsultation] = useState<Consultation | null>(null);
   const [tipoSeleccionado, setTipoSeleccionado] = useState<DocumentType>("receta");
   const [subiendo, setSubiendo] = useState(false);
-  const [enviandoId, setEnviandoId] = useState<string | null>(null);
   const [mostrarCertificado, setMostrarCertificado] = useState(false);
+  const [mostrarObservaciones, setMostrarObservaciones] = useState(false);
   const [mostrarSecretaria, setMostrarSecretaria] = useState(false);
   const [accionEnCurso, setAccionEnCurso] = useState<"atender" | "llamada" | "finalizar" | null>(null);
+  const [enviandoDocumentacion, setEnviandoDocumentacion] = useState(false);
   const [avisoEnvio, setAvisoEnvio] = useState<string | null>(null);
   const [linkCopiado, setLinkCopiado] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -108,19 +111,25 @@ export default function AdminConsultaDetalle({ params }: { params: { id: string 
     }
   }
 
-  async function enviarDocumento(doc: DocumentFile) {
-    setEnviandoId(doc.id);
+  async function enviarDocumentacion(esReenvio: boolean) {
+    if (esReenvio) {
+      const confirmar = window.confirm(
+        "La documentación ya se había enviado. ¿Volver a mandarla con todo lo que esté disponible ahora?"
+      );
+      if (!confirmar) return;
+    }
+    setEnviandoDocumentacion(true);
     setAvisoEnvio(null);
     try {
-      const res = await fetch(`/api/consultations/${params.id}/documents/${doc.id}/send`, { method: "POST" });
+      const res = await fetch(`/api/consultations/${params.id}/enviar-documentacion`, { method: "POST" });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        setAvisoEnvio(data.error ?? "No se pudo enviar el documento.");
+        setAvisoEnvio(data.error ?? "No se pudo enviar la documentación.");
         return;
       }
       await cargar();
     } finally {
-      setEnviandoId(null);
+      setEnviandoDocumentacion(false);
     }
   }
 
@@ -137,6 +146,7 @@ export default function AdminConsultaDetalle({ params }: { params: { id: string 
   const puedeLlamar = c.estado === "lista" || c.estado === "en_consulta";
   const enCurso = c.estado === "en_consulta";
   const puedeCertificar = c.estado === "lista" || c.estado === "en_consulta" || c.estado === "finalizada";
+  const yaEnviada = Boolean(c.documentacionEnviadaAt);
 
   return (
     <main className="min-h-screen bg-bgsoft">
@@ -190,6 +200,11 @@ export default function AdminConsultaDetalle({ params }: { params: { id: string 
                   Crear certificado
                 </button>
               )}
+              {puedeCertificar && (
+                <button className="btn-secondary !py-2.5" onClick={() => setMostrarObservaciones(true)}>
+                  Crear observaciones
+                </button>
+              )}
               <button className="btn-secondary !py-2.5" onClick={() => setMostrarSecretaria(true)}>
                 Solicitar receta a secretaría
               </button>
@@ -197,11 +212,11 @@ export default function AdminConsultaDetalle({ params }: { params: { id: string 
           </div>
           <div className="grid grid-cols-2 gap-y-3 text-sm">
             <div className="text-muted">DNI</div>
-            <div className="text-ink">{c.paciente.dni}</div>
+            <div className="text-ink break-all">{c.paciente.dni}</div>
             <div className="text-muted">WhatsApp</div>
-            <div className="text-ink">{c.paciente.whatsapp}</div>
+            <div className="text-ink break-all">{c.paciente.whatsapp}</div>
             <div className="text-muted">Email</div>
-            <div className="text-ink">{c.paciente.email}</div>
+            <div className="text-ink break-all">{c.paciente.email}</div>
             <div className="text-muted">Fecha</div>
             <div className="text-ink">{c.fecha} · {c.hora}</div>
             <div className="text-muted">Precio</div>
@@ -243,7 +258,7 @@ export default function AdminConsultaDetalle({ params }: { params: { id: string 
           )}
 
           {c.documentos.length === 0 ? (
-            <p className="text-sm text-muted">Todavía no se subieron documentos.</p>
+            <p className="text-sm text-muted">Todavía no se generaron documentos.</p>
           ) : (
             <div className="space-y-2">
               {c.documentos.map((doc) => (
@@ -253,26 +268,38 @@ export default function AdminConsultaDetalle({ params }: { params: { id: string 
                 >
                   <div>
                     <p className="text-sm font-medium text-ink">{doc.nombre}</p>
-                    <p className="text-xs text-muted capitalize">{doc.tipo}</p>
+                    <p className="text-xs text-muted">{DOCUMENT_TYPE_LABEL[doc.tipo]}</p>
                   </div>
-                  {doc.enviado ? (
-                    <span className="flex items-center gap-1.5 text-xs font-medium text-emerald-600">
-                      <IconCheck className="h-3.5 w-3.5" />
-                      Enviado por mail
-                    </span>
-                  ) : (
-                    <button
-                      className="btn-secondary !py-2 !px-4 text-xs"
-                      disabled={enviandoId === doc.id}
-                      onClick={() => enviarDocumento(doc)}
-                    >
-                      {enviandoId === doc.id ? "Enviando…" : "Enviar por mail"}
-                    </button>
-                  )}
                 </div>
               ))}
             </div>
           )}
+
+          <div className="mt-5 border-t border-line pt-5">
+            {yaEnviada ? (
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <span className="flex items-center gap-1.5 text-sm font-medium text-emerald-600">
+                  <IconCheck className="h-4 w-4" />
+                  Documentación enviada
+                </span>
+                <button
+                  className="btn-secondary !py-2 !px-4 text-xs self-start sm:self-auto"
+                  disabled={enviandoDocumentacion}
+                  onClick={() => enviarDocumentacion(true)}
+                >
+                  {enviandoDocumentacion ? "Enviando…" : "Reenviar"}
+                </button>
+              </div>
+            ) : (
+              <button
+                className="btn-primary w-full"
+                disabled={enviandoDocumentacion || c.documentos.length === 0}
+                onClick={() => enviarDocumentacion(false)}
+              >
+                {enviandoDocumentacion ? "Enviando…" : "Enviar documentación al paciente"}
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -284,6 +311,17 @@ export default function AdminConsultaDetalle({ params }: { params: { id: string 
           onCerrar={() => setMostrarCertificado(false)}
           onCreado={() => {
             setMostrarCertificado(false);
+            cargar();
+          }}
+        />
+      )}
+
+      {mostrarObservaciones && (
+        <ObservacionesModal
+          consultationId={c.id}
+          onCerrar={() => setMostrarObservaciones(false)}
+          onCreado={() => {
+            setMostrarObservaciones(false);
             cargar();
           }}
         />

@@ -28,7 +28,7 @@ export const doctorProfile: DoctorProfile = {
     whatsapp: "2284479009",
   },
   servicios: [
-    "Medicina Clínica",
+    "Médica Clínica",
     "Medicina Laboral",
     "Licencias Médicas del Personal Docente y No Docente de la Provincia de Buenos Aires",
     "Control de Ausentismo",

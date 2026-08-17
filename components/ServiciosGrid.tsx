@@ -17,7 +17,7 @@ interface ServicioDetail {
 }
 
 const DETALLE_SERVICIO: Record<string, ServicioDetail> = {
-  'Medicina Clínica': {
+  'Médica Clínica': {
     icono: IconStethoscope,
     texto:
       'Consultas generales, diagnóstico, seguimiento de pacientes y tratamiento de patologías médicas.',

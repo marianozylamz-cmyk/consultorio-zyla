@@ -23,24 +23,24 @@ export function SolicitudSecretariaModal({ consultation, onCerrar }: Props) {
   const [indicaciones, setIndicaciones] = useState("");
   const { contenedorRef, onBackdropClick } = useModalA11y(onCerrar);
 
+  // Este mensaje lo manda el MÉDICO a la secretaria desde su propio
+  // WhatsApp — no puede estar redactado como si lo escribiera el paciente.
   function construirMensaje() {
     const lineas = [
-      `Hola, soy ${consultation.paciente.nombre}.`,
+      "Hola, necesito que le envíes una receta a:",
+      "",
+      `Paciente: ${consultation.paciente.nombre}`,
       `DNI: ${consultation.paciente.dni}`,
-      "",
-      "Solicito a secretaría una receta de:",
-      medicamento,
-    ];
-    if (indicaciones) lineas.push(`Indicaciones: ${indicaciones}`);
-    lineas.push(
-      "",
-      `Mi consulta fue realizada con el Dr. ${doctorProfile.nombre}.`,
-      "",
-      "Por favor, podrían enviarle la receta al paciente a este WhatsApp o email:",
       `WhatsApp: ${consultation.paciente.whatsapp}`,
       `Email: ${consultation.paciente.email}`,
       "",
-      "Gracias."
+      `Le indiqué: ${medicamento}.`,
+    ];
+    if (indicaciones) lineas.push(indicaciones);
+    lineas.push(
+      "",
+      "Por favor, preparale/enviale la receta correspondiente.",
+      "Si necesitás algún dato adicional o información de su obra social, podés comunicarte con el paciente."
     );
     return lineas.join("\n");
   }

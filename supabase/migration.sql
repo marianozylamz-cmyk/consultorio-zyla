@@ -75,3 +75,13 @@ alter table consultations add column if not exists es_ahora boolean not null def
 --
 -- Correr a mano en el SQL Editor de Supabase.
 alter table consultations add column if not exists recordatorio_enviado_at timestamptz;
+
+-- ==========================================================
+-- `consultations.documentacion_enviada_at` — se manda UN SOLO mail al
+-- paciente con todos los documentos disponibles (certificado,
+-- observaciones, receta/indicaciones subidas), no uno por documento.
+-- Este timestamp marca que ya se mandó, para no reenviar por accidente
+-- y para poder mostrar "✓ Documentación enviada" en el panel.
+--
+-- Correr a mano en el SQL Editor de Supabase.
+alter table consultations add column if not exists documentacion_enviada_at timestamptz;

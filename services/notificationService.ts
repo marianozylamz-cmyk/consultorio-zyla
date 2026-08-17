@@ -1,4 +1,4 @@
-import { Consultation, DocumentFile, NotificationLog } from "@/types";
+import { Consultation, NotificationLog } from "@/types";
 import { doctorProfile } from "@/data/doctorProfile";
 import { enviarEmail, dataUrlToAttachment } from "@/lib/email";
 import { DOCUMENT_TYPE_LABEL } from "@/lib/documentLabels";
@@ -132,23 +132,36 @@ class NotificationService {
   }
 
   /**
-   * Manda el documento (receta/certificado/indicaciones) al paciente por
-   * mail, como adjunto real — un solo clic del médico, sin que tenga que
-   * escribir nada a mano. Devuelve `enviado: false` si no hay SMTP
-   * configurado (en vez de tirar error), para que el llamador decida cómo
-   * avisarlo.
+   * Manda TODOS los documentos disponibles de la consulta (certificado,
+   * receta/indicaciones subidas, observaciones, etc.) al paciente en un
+   * solo mail, cada uno como adjunto real — no uno por documento. Si no
+   * hay ningún documento todavía, no manda nada (`enviado: false`, sin
+   * tirar error) para que el llamador lo trate como "nada que enviar",
+   * no como una falla.
    */
-  async sendDocumentToPatient(consultation: Consultation, doc: DocumentFile): Promise<{ enviado: boolean }> {
-    const attachment = dataUrlToAttachment(doc.dataUrl, doc.nombre);
-    const tipoLabel = DOCUMENT_TYPE_LABEL[doc.tipo];
-    const asunto = `${tipoLabel} — Dr. ${doctorProfile.nombre}`;
+  async sendAllDocumentsToPatient(consultation: Consultation): Promise<{ enviado: boolean }> {
+    if (consultation.documentos.length === 0) {
+      return { enviado: false };
+    }
+
+    const attachments = consultation.documentos.map((doc) => dataUrlToAttachment(doc.dataUrl, doc.nombre));
+    const listaAdjuntos = consultation.documentos
+      .map((doc) => `📎 ${DOCUMENT_TYPE_LABEL[doc.tipo]}: ${doc.nombre}`)
+      .join("<br>");
+
     const html = `
+      <p><strong>Documentación de su consulta médica</strong></p>
       <p>Hola ${consultation.paciente.nombre},</p>
-      <p>Te envío tu ${tipoLabel.toLowerCase()} de la consulta del ${formatFechaLargaAR(consultation.fecha)}.</p>
-      <p>Encontrás el archivo adjunto a este mail.</p>
-      <p>Saludos,<br>Dr. ${doctorProfile.nombre}</p>
+      <p>Adjuntamos la documentación correspondiente a su consulta con el Dr. ${doctorProfile.nombre}.</p>
+      <p>${listaAdjuntos}</p>
+      <p>Saludos.</p>
     `;
-    return enviarEmail({ to: consultation.paciente.email, subject: asunto, html, attachments: [attachment] });
+    return enviarEmail({
+      to: consultation.paciente.email,
+      subject: "Documentación de su consulta médica",
+      html,
+      attachments,
+    });
   }
 
   /**

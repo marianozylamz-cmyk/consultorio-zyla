@@ -30,7 +30,7 @@ export function SiteHeader({ fixed = true }: SiteHeaderProps) {
             Dr. Juan Manuel Zyla
           </div>
           <div className="text-xs text-muted group-hover:text-[#1B6E5C]/70 transition-colors">
-            Medicina Clínica
+            Médica Clínica
           </div>
         </Link>
 

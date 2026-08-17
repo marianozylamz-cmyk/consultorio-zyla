@@ -98,9 +98,10 @@ export interface Consultation {
   creadaEn: string;
   documentos: DocumentFile[];
   notificaciones: NotificationLog[];
+  documentacionEnviadaAt: string | null; // ISO timestamp — null hasta que se manda el email único con todos los documentos
 }
 
-export type DocumentType = "receta" | "certificado" | "indicaciones" | "otro";
+export type DocumentType = "receta" | "certificado" | "indicaciones" | "observaciones" | "otro";
 
 export interface DocumentFile {
   id: string;
@@ -110,15 +111,16 @@ export interface DocumentFile {
   mimeType: string;
   dataUrl: string; // simulación de almacenamiento (base64) - reemplazable por S3/Supabase
   subidoEn: string;
-  enviado: boolean;
-  enviadoEn?: string;
+  // No hay "enviado" por documento: el envío es a nivel consulta, un solo
+  // mail con todos los adjuntos disponibles — ver Consultation.documentacionEnviadaAt.
 }
 
 export interface CertificateInput {
   motivo: string;
   diagnostico: string;
   tratamiento: string;
-  periodoInvalidez: string; // texto libre, ej: "Del 03/08/2026 al 06/08/2026 (3 días)"
+  licenciaDesde?: string; // ISO date "2026-08-03" — opcional, el PDF solo muestra el período si están las dos
+  licenciaHasta?: string; // ISO date
   destinatario?: string; // empresa / institución a la que se dirige
   observaciones?: string;
 }

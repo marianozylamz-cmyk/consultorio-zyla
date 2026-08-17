@@ -212,6 +212,7 @@ interface ConsultationRow {
   hora: string;
   es_ahora: boolean;
   recordatorio_enviado_at: string | null;
+  documentacion_enviada_at: string | null;
   precio: number;
   duracion_minutos: number;
   estado: ConsultationStatus;
@@ -230,6 +231,7 @@ function rowToConsultation(row: ConsultationRow): Consultation {
     hora: row.hora,
     esAhora: row.es_ahora,
     recordatorioEnviadoAt: row.recordatorio_enviado_at,
+    documentacionEnviadaAt: row.documentacion_enviada_at,
     precio: Number(row.precio),
     duracionMinutos: row.duracion_minutos,
     estado: row.estado,
@@ -272,6 +274,7 @@ function partialConsultationToRow(patch: Partial<Consultation>) {
   if (patch.documentos !== undefined) row.documentos = patch.documentos;
   if (patch.notificaciones !== undefined) row.notificaciones = patch.notificaciones;
   if (patch.creadaEn !== undefined) row.creada_en = patch.creadaEn;
+  if (patch.documentacionEnviadaAt !== undefined) row.documentacion_enviada_at = patch.documentacionEnviadaAt;
   return row;
 }
 
@@ -432,19 +435,12 @@ export async function addDocumentToConsultation(
   return updated ? doc : undefined;
 }
 
-export async function markDocumentSent(
-  consultationId: string,
-  documentId: string
-): Promise<DocumentFile | undefined> {
-  const consultation = await getConsultation(consultationId);
-  if (!consultation) return undefined;
-
-  const doc = consultation.documentos.find((d) => d.id === documentId);
-  if (!doc) return undefined;
-
-  const documentos = consultation.documentos.map((d) =>
-    d.id === documentId ? { ...d, enviado: true, enviadoEn: new Date().toISOString() } : d
-  );
-  const updated = await updateConsultation(consultationId, { documentos });
-  return updated ? updated.documentos.find((d) => d.id === documentId) : undefined;
+/**
+ * Marca que ya se mandó el email único con toda la documentación
+ * disponible en ese momento. No es atómico con reclamarRecordatorio (no
+ * hace falta: esto lo dispara siempre un click explícito del médico, no
+ * un cron que pueda correr dos veces en paralelo).
+ */
+export async function marcarDocumentacionEnviada(consultationId: string): Promise<Consultation | undefined> {
+  return updateConsultation(consultationId, { documentacionEnviadaAt: new Date().toISOString() });
 }

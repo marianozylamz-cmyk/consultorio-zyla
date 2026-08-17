@@ -1,12 +1,12 @@
 import { DocumentFile, DocumentType } from "@/types";
-import { addDocumentToConsultation, markDocumentSent } from "@/lib/store";
+import { addDocumentToConsultation } from "@/lib/store";
 import { genId } from "@/lib/ids";
 
 // ==========================================================
-// Documentos (recetas/certificados/indicaciones). La plataforma
-// NO genera recetas: solo recibe archivos que Juan ya emitió en
-// su sistema externo, y se los envía al paciente por mail
-// directo como adjunto (ver notificationService.sendDocumentToPatient).
+// Documentos (certificados/observaciones generados por el sistema, o
+// recetas/indicaciones que Juan sube como archivo). El envío al paciente
+// es a nivel consulta — un solo mail con todos los adjuntos disponibles,
+// ver notificationService.sendAllDocumentsToPatient.
 //
 // Almacenamiento: el archivo (base64) vive en la columna jsonb
 // `documentos` de la consulta, en Supabase. Para producción con
@@ -30,14 +30,9 @@ class DocumentService {
       mimeType: input.mimeType,
       dataUrl: input.dataUrl,
       subidoEn: new Date().toISOString(),
-      enviado: false,
     };
     await addDocumentToConsultation(input.consultationId, doc);
     return doc;
-  }
-
-  async marcarEnviado(consultationId: string, documentId: string) {
-    return markDocumentSent(consultationId, documentId);
   }
 }
 

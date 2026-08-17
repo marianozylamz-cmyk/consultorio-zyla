@@ -64,6 +64,34 @@ export default function SalaDeEspera({ params }: { params: { id: string } }) {
     );
   }
 
+  // Consulta ya finalizada: el paciente puede volver a esta misma página
+  // (por el mail, por historial del navegador, etc.) — sin esto quedaba
+  // viendo un estado de espera que ya no correspondía a nada, sin saber
+  // qué hacer.
+  if (consultation.estado === "finalizada") {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-white px-5">
+        <div className="w-full max-w-md animate-fadeIn text-center">
+          <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-emerald-50 px-4 py-1.5 text-sm font-medium text-emerald-700">
+            <IconCheck className="h-4 w-4" />
+            Consulta terminada
+          </div>
+          <h1 className="text-xl font-semibold text-ink">
+            La consulta con el Dr. {doctorProfile.nombre} ha finalizado.
+          </h1>
+          <p className="mt-4 text-[15px] text-muted">
+            {consultation.documentacionEnviadaAt
+              ? "La documentación fue enviada a tu correo electrónico."
+              : "El médico está preparando la documentación correspondiente. Te llegará por correo cuando esté disponible."}
+          </p>
+          <Link href="/" className="btn-primary mt-8 inline-block">
+            Volver al inicio
+          </Link>
+        </div>
+      </main>
+    );
+  }
+
   const lista = consultation.estado === "lista" || consultation.estado === "en_consulta";
 
   return (
