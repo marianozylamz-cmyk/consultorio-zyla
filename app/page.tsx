@@ -75,7 +75,7 @@ export default function LandingPage() {
             className="card mt-14 w-full animate-fadeIn sm:mt-16 sm:max-w-2xl"
             style={{ animationDelay: '200ms', animationFillMode: 'both' }}
           >
-            <div className="mb-6 flex items-center justify-between gap-4">
+            <div className="mb-6 flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
               <div>
                 <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-muted mb-2">
                   <IconVideo className="h-3.5 w-3.5 text-[#1B6E5C]" />
