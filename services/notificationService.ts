@@ -165,6 +165,23 @@ class NotificationService {
   }
 
   /**
+   * Manda al paciente el link a su receta generada a mano en un sistema
+   * externo (ej. MisRx) — el médico ya la creó ahí, esto solo la reenvía.
+   */
+  async sendRecetaExternaLink(consultation: Consultation): Promise<{ enviado: boolean }> {
+    if (!consultation.recetaExternaUrl) {
+      return { enviado: false };
+    }
+    const html = `
+      <p>Hola ${consultation.paciente.nombre},</p>
+      <p>El Dr. ${doctorProfile.nombre} te envió tu receta. Accedé acá:</p>
+      ${botonEmail(consultation.recetaExternaUrl, "Ver mi receta")}
+      <p>Saludos,<br>Dr. ${doctorProfile.nombre}</p>
+    `;
+    return enviarEmail({ to: consultation.paciente.email, subject: "Tu receta médica", html });
+  }
+
+  /**
    * Confirmación de turno al paciente — solo para turnos agendados
    * (`esAhora: false`). Una atención inmediata no necesita este mail: el
    * paciente ya está viendo la confirmación en pantalla en ese momento.

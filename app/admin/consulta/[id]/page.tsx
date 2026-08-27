@@ -38,6 +38,12 @@ export default function AdminConsultaDetalle({ params }: { params: { id: string 
   const [enviandoDocumentacion, setEnviandoDocumentacion] = useState(false);
   const [avisoEnvio, setAvisoEnvio] = useState<string | null>(null);
   const [linkCopiado, setLinkCopiado] = useState(false);
+  const [recetaUrlInput, setRecetaUrlInput] = useState("");
+  const [guardandoReceta, setGuardandoReceta] = useState(false);
+  const [errorReceta, setErrorReceta] = useState<string | null>(null);
+  const [recetaLinkCopiado, setRecetaLinkCopiado] = useState(false);
+  const [enviandoReceta, setEnviandoReceta] = useState(false);
+  const [recetaEnviada, setRecetaEnviada] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   // Para emergencias: si el paciente no puede entrar desde su sala de
@@ -58,6 +64,10 @@ export default function AdminConsultaDetalle({ params }: { params: { id: string 
     cargar();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.id]);
+
+  useEffect(() => {
+    setRecetaUrlInput(consultation?.recetaExternaUrl ?? "");
+  }, [consultation?.recetaExternaUrl]);
 
   async function cambiarEstado(accion: "atender" | "llamada" | "finalizar", estado: Consultation["estado"]) {
     if (accionEnCurso || !consultation) return;
@@ -130,6 +140,52 @@ export default function AdminConsultaDetalle({ params }: { params: { id: string 
       await cargar();
     } finally {
       setEnviandoDocumentacion(false);
+    }
+  }
+
+  async function guardarRecetaExterna() {
+    if (!recetaUrlInput.trim() || guardandoReceta) return;
+    setGuardandoReceta(true);
+    setErrorReceta(null);
+    try {
+      const res = await fetch(`/api/consultations/${params.id}/receta-externa`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: recetaUrlInput.trim() }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setErrorReceta(data.error ?? "No se pudo guardar el link.");
+        return;
+      }
+      await cargar();
+    } finally {
+      setGuardandoReceta(false);
+    }
+  }
+
+  async function copiarRecetaExterna() {
+    if (!consultation?.recetaExternaUrl) return;
+    await navigator.clipboard.writeText(consultation.recetaExternaUrl);
+    setRecetaLinkCopiado(true);
+    setTimeout(() => setRecetaLinkCopiado(false), 2000);
+  }
+
+  async function enviarRecetaExterna() {
+    if (enviandoReceta) return;
+    setEnviandoReceta(true);
+    setErrorReceta(null);
+    try {
+      const res = await fetch(`/api/consultations/${params.id}/receta-externa/enviar`, { method: "POST" });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setErrorReceta(data.error ?? "No se pudo enviar el mail.");
+        return;
+      }
+      setRecetaEnviada(true);
+      setTimeout(() => setRecetaEnviada(false), 3000);
+    } finally {
+      setEnviandoReceta(false);
     }
   }
 
@@ -299,6 +355,79 @@ export default function AdminConsultaDetalle({ params }: { params: { id: string 
                 {enviandoDocumentacion ? "Enviando…" : "Enviar documentación al paciente"}
               </button>
             )}
+          </div>
+        </div>
+
+        <div className="card">
+          <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-muted">Receta (MisRx)</h2>
+
+          <a
+            href="https://misrx.com.ar/welcome"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn-secondary mb-4 inline-flex"
+          >
+            Abrir MisRx
+          </a>
+          <p className="mb-4 text-xs text-muted">
+            Generá la receta en MisRx y después pegá acá el link que te da, para que quede asociado a
+            esta consulta.
+          </p>
+
+          {c.recetaExternaUrl && (
+            <div className="mb-4 flex flex-col gap-3 rounded-xl border border-line px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+              <a
+                href={c.recetaExternaUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="truncate text-sm font-medium text-navy hover:underline"
+              >
+                {c.recetaExternaUrl}
+              </a>
+              <div className="flex flex-wrap gap-2">
+                <a
+                  href={c.recetaExternaUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-secondary !py-2 !px-3 text-xs"
+                >
+                  Ver
+                </a>
+                <button className="btn-secondary !py-2 !px-3 text-xs" onClick={copiarRecetaExterna}>
+                  {recetaLinkCopiado ? "¡Copiado!" : "Copiar"}
+                </button>
+                <button
+                  className="btn-secondary !py-2 !px-3 text-xs"
+                  disabled={enviandoReceta}
+                  onClick={enviarRecetaExterna}
+                >
+                  {enviandoReceta ? "Enviando…" : recetaEnviada ? "✓ Enviado" : "Enviar por mail al paciente"}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {errorReceta && (
+            <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {errorReceta}
+            </div>
+          )}
+
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <input
+              className="input-field"
+              type="url"
+              placeholder="https://misrx.com.ar/prestacion?token=..."
+              value={recetaUrlInput}
+              onChange={(e) => setRecetaUrlInput(e.target.value)}
+            />
+            <button
+              className="btn-secondary shrink-0"
+              disabled={guardandoReceta || !recetaUrlInput.trim()}
+              onClick={guardarRecetaExterna}
+            >
+              {guardandoReceta ? "Guardando…" : c.recetaExternaUrl ? "Actualizar link" : "Guardar link"}
+            </button>
           </div>
         </div>
       </div>

@@ -80,6 +80,7 @@ export async function POST(req: Request) {
     esAhora: Boolean(body.esAhora),
     recordatorioEnviadoAt: null,
     documentacionEnviadaAt: null,
+    recetaExternaUrl: null,
     precio: doctorProfile.consultaOnline.precio,
     duracionMinutos: doctorProfile.consultaOnline.duracionMinutos,
     estado: "pendiente_pago",

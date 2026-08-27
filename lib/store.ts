@@ -213,6 +213,7 @@ interface ConsultationRow {
   es_ahora: boolean;
   recordatorio_enviado_at: string | null;
   documentacion_enviada_at: string | null;
+  receta_externa_url: string | null;
   precio: number;
   duracion_minutos: number;
   estado: ConsultationStatus;
@@ -232,6 +233,7 @@ function rowToConsultation(row: ConsultationRow): Consultation {
     esAhora: row.es_ahora,
     recordatorioEnviadoAt: row.recordatorio_enviado_at,
     documentacionEnviadaAt: row.documentacion_enviada_at,
+    recetaExternaUrl: row.receta_externa_url,
     precio: Number(row.precio),
     duracionMinutos: row.duracion_minutos,
     estado: row.estado,
@@ -275,6 +277,7 @@ function partialConsultationToRow(patch: Partial<Consultation>) {
   if (patch.notificaciones !== undefined) row.notificaciones = patch.notificaciones;
   if (patch.creadaEn !== undefined) row.creada_en = patch.creadaEn;
   if (patch.documentacionEnviadaAt !== undefined) row.documentacion_enviada_at = patch.documentacionEnviadaAt;
+  if (patch.recetaExternaUrl !== undefined) row.receta_externa_url = patch.recetaExternaUrl;
   return row;
 }
 

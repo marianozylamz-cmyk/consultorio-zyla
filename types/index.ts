@@ -99,6 +99,7 @@ export interface Consultation {
   documentos: DocumentFile[];
   notificaciones: NotificationLog[];
   documentacionEnviadaAt: string | null; // ISO timestamp — null hasta que se manda el email único con todos los documentos
+  recetaExternaUrl: string | null; // link a la receta generada a mano en un sistema externo (ej. MisRx) — no lo genera esta app, solo lo guarda
 }
 
 export type DocumentType = "receta" | "certificado" | "indicaciones" | "observaciones" | "otro";

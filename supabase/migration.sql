@@ -85,3 +85,13 @@ alter table consultations add column if not exists recordatorio_enviado_at times
 --
 -- Correr a mano en el SQL Editor de Supabase.
 alter table consultations add column if not exists documentacion_enviada_at timestamptz;
+
+-- ==========================================================
+-- `consultations.receta_externa_url` — link a la receta que el médico
+-- generó a mano en un sistema externo (ej. MisRx). Esta app NO genera
+-- ni valida esa receta, solo guarda el link para no perderlo y poder
+-- reenviárselo al paciente. Sin dominio fijo a propósito: si el día de
+-- mañana cambian de proveedor, sigue funcionando igual.
+--
+-- Correr a mano en el SQL Editor de Supabase.
+alter table consultations add column if not exists receta_externa_url text;
