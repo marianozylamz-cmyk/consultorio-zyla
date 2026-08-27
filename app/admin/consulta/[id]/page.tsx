@@ -362,7 +362,7 @@ export default function AdminConsultaDetalle({ params }: { params: { id: string 
           <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-muted">Receta (MisRx)</h2>
 
           <a
-            href="https://misrx.com.ar/welcome"
+            href="https://misrx.com.ar/login"
             target="_blank"
             rel="noopener noreferrer"
             className="btn-secondary mb-4 inline-flex"

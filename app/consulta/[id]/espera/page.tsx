@@ -21,8 +21,14 @@ const ESPERA_LARGA_MS = 3 * 60 * 1000;
 const ESPERA_DOCS_MS = 5 * 60 * 1000;
 
 /** Lista de documentos con descarga directa — no depende de que llegue el mail. */
-function ListaDocumentos({ documentos }: { documentos: DocumentFile[] }) {
-  if (documentos.length === 0) return null;
+function ListaDocumentos({
+  documentos,
+  recetaExternaUrl,
+}: {
+  documentos: DocumentFile[];
+  recetaExternaUrl: string | null;
+}) {
+  if (documentos.length === 0 && !recetaExternaUrl) return null;
   return (
     <div className="mt-6 space-y-2 text-left">
       <p className="text-xs font-bold uppercase tracking-widest text-muted">Tu documentación</p>
@@ -37,6 +43,17 @@ function ListaDocumentos({ documentos }: { documentos: DocumentFile[] }) {
           <span className="font-medium text-navy">Descargar</span>
         </a>
       ))}
+      {recetaExternaUrl && (
+        <a
+          href={recetaExternaUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center justify-between rounded-xl border border-line px-4 py-3 text-sm transition-colors hover:border-navy/30"
+        >
+          <span className="text-ink">Receta</span>
+          <span className="font-medium text-navy">Ver</span>
+        </a>
+      )}
     </div>
   );
 }
@@ -106,7 +123,7 @@ export default function SalaDeEspera({ params }: { params: { id: string } }) {
   // — sin esto quedaba viendo un estado de espera que ya no correspondía a
   // nada, sin saber qué hacer.
   if (consultation.estado === "finalizada") {
-    const documentacionLista = consultation.documentacionEnviadaAt || consultation.documentos.length > 0;
+    const hayAlgoParaMostrar = consultation.documentos.length > 0 || Boolean(consultation.recetaExternaUrl);
     return (
       <main className="flex min-h-screen items-center justify-center bg-white px-5 py-12">
         <div className="w-full max-w-md animate-fadeIn text-center">
@@ -118,16 +135,16 @@ export default function SalaDeEspera({ params }: { params: { id: string } }) {
             La consulta con el Dr. {doctorProfile.nombre} ha finalizado.
           </h1>
           <p className="mt-4 text-[15px] text-muted">
-            {consultation.documentos.length > 0
+            {hayAlgoParaMostrar
               ? "Ya podés descargar tu documentación acá abajo."
               : consultation.documentacionEnviadaAt
               ? "La documentación fue enviada a tu correo electrónico."
               : "El médico está preparando la documentación correspondiente. En unos minutos vas a poder descargarla acá, o te va a llegar por correo."}
           </p>
 
-          <ListaDocumentos documentos={consultation.documentos} />
+          <ListaDocumentos documentos={consultation.documentos} recetaExternaUrl={consultation.recetaExternaUrl} />
 
-          {!documentacionLista && esperaDocsLarga && (
+          {!hayAlgoParaMostrar && !consultation.documentacionEnviadaAt && esperaDocsLarga && (
             <div className="mt-6 animate-fadeIn rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-left text-sm text-amber-800">
               ¿Todavía no te llegó nada?{" "}
               <a
@@ -252,7 +269,7 @@ export default function SalaDeEspera({ params }: { params: { id: string } }) {
           </div>
         </div>
 
-        <ListaDocumentos documentos={consultation.documentos} />
+        <ListaDocumentos documentos={consultation.documentos} recetaExternaUrl={consultation.recetaExternaUrl} />
 
         <Link href="/" className="mt-6 inline-block text-sm text-muted hover:text-ink">
           ← Volver al inicio
