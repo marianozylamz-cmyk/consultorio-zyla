@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { decodificarBasicAuth } from "@/lib/adminAuth";
 
 // ==========================================================
 // Protección mínima real para /admin y las rutas de API que solo
@@ -31,22 +32,8 @@ function noAutorizado() {
 function estaAutorizado(req: NextRequest): boolean {
   if (!ADMIN_USER || !ADMIN_PASS) return false;
 
-  const header = req.headers.get("authorization");
-  if (!header?.startsWith("Basic ")) return false;
-
-  let decoded: string;
-  try {
-    decoded = atob(header.slice(6));
-  } catch {
-    return false;
-  }
-
-  const separador = decoded.indexOf(":");
-  if (separador === -1) return false;
-
-  const usuario = decoded.slice(0, separador);
-  const clave = decoded.slice(separador + 1);
-  return usuario === ADMIN_USER && clave === ADMIN_PASS;
+  const creds = decodificarBasicAuth(req);
+  return creds !== null && creds.usuario === ADMIN_USER && creds.clave === ADMIN_PASS;
 }
 
 /**
@@ -73,6 +60,7 @@ function esRutaDeMedico(pathname: string, method: string): boolean {
     if (resto === "/observaciones" && method === "POST") return true;
     if (resto === "/solicitud-estudios" && method === "POST") return true;
     if (resto === "/enviar-documentacion" && method === "POST") return true;
+    if (resto === "/marcar-pagado" && method === "POST") return true;
     if (resto === "/receta-externa" && method === "POST") return true;
     if (resto === "/receta-externa/enviar" && method === "POST") return true;
   }

@@ -7,6 +7,7 @@ import { CertificadoModal } from "@/components/CertificadoModal";
 import { ObservacionesModal } from "@/components/ObservacionesModal";
 import { SolicitudEstudiosModal } from "@/components/SolicitudEstudiosModal";
 import { SolicitudSecretariaModal } from "@/components/SolicitudSecretariaModal";
+import { MarcarPagadoModal } from "@/components/MarcarPagadoModal";
 import { IconCheck } from "@/components/icons";
 import { doctorProfile } from "@/data/doctorProfile";
 import { formatFechaLargaAR, toISODate } from "@/lib/availability";
@@ -47,6 +48,7 @@ export default function AdminConsultaDetalle({ params }: { params: { id: string 
   const [mostrarObservaciones, setMostrarObservaciones] = useState(false);
   const [mostrarSolicitudEstudios, setMostrarSolicitudEstudios] = useState(false);
   const [mostrarSecretaria, setMostrarSecretaria] = useState(false);
+  const [mostrarMarcarPagado, setMostrarMarcarPagado] = useState(false);
   const [accionEnCurso, setAccionEnCurso] = useState<"atender" | "llamada" | "finalizar" | null>(null);
   const [enviandoDocumentacion, setEnviandoDocumentacion] = useState(false);
   const [avisoEnvio, setAvisoEnvio] = useState<string | null>(null);
@@ -228,7 +230,8 @@ export default function AdminConsultaDetalle({ params }: { params: { id: string 
   const enCurso = c.estado === "en_consulta";
   const puedeCertificar = c.estado === "lista" || c.estado === "en_consulta" || c.estado === "finalizada";
   const yaEnviada = Boolean(c.documentacionEnviadaAt);
-  const hayAccionesAtencion = puedeAtender || puedeLlamar || enCurso;
+  const puedeMarcarPagado = c.estado === "pendiente_pago";
+  const hayAccionesAtencion = puedeAtender || puedeLlamar || enCurso || puedeMarcarPagado;
   const estadoInfo = ESTADO_LABEL[c.estado];
   const pagoInfo = PAGO_LABEL[c.pago.estado];
   const tipoNombre = doctorProfile.consultaOnline.tipos.find((t) => t.id === c.tipoConsulta)?.nombre ?? c.tipoConsulta;
@@ -257,7 +260,13 @@ export default function AdminConsultaDetalle({ params }: { params: { id: string 
                 <span className={`h-2 w-2 rounded-full ${estadoInfo.dotClassName}`} />
                 {estadoInfo.label}
               </span>
-              <span className={pagoInfo.className}>{pagoInfo.label}</span>
+              {c.pago.metodo === "manual" ? (
+                <span className="badge bg-[#E8EFF5] text-[#2C3E50]">
+                  Pago manual — {c.pago.notaManual}
+                </span>
+              ) : (
+                <span className={pagoInfo.className}>{pagoInfo.label}</span>
+              )}
             </div>
           </div>
 
@@ -319,6 +328,11 @@ export default function AdminConsultaDetalle({ params }: { params: { id: string 
                       onClick={() => cambiarEstado("finalizar", "finalizada")}
                     >
                       {accionEnCurso === "finalizar" ? "Finalizando…" : "Finalizar consulta"}
+                    </button>
+                  )}
+                  {puedeMarcarPagado && (
+                    <button className="btn-secondary !py-2.5" onClick={() => setMostrarMarcarPagado(true)}>
+                      Marcar como pagado
                     </button>
                   )}
                 </div>
@@ -580,6 +594,17 @@ export default function AdminConsultaDetalle({ params }: { params: { id: string 
 
       {mostrarSecretaria && (
         <SolicitudSecretariaModal consultation={c} onCerrar={() => setMostrarSecretaria(false)} />
+      )}
+
+      {mostrarMarcarPagado && (
+        <MarcarPagadoModal
+          consultationId={c.id}
+          onCerrar={() => setMostrarMarcarPagado(false)}
+          onConfirmado={() => {
+            setMostrarMarcarPagado(false);
+            cargar();
+          }}
+        />
       )}
     </main>
   );

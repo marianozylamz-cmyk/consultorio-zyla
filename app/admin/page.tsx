@@ -335,6 +335,11 @@ export default function AdminDashboard() {
                         {doctorProfile.consultaOnline.tipos.find((t) => t.id === c.tipoConsulta)?.nombre ??
                           c.tipoConsulta}{" "}
                         · ${c.precio.toLocaleString("es-AR")}
+                        {c.pago.metodo === "manual" && (
+                          <span className="ml-1.5 rounded-full bg-[#E8EFF5] px-2 py-0.5 text-xs font-medium text-[#2C3E50]">
+                            Pago manual
+                          </span>
+                        )}
                       </p>
                     </div>
                     <span className={`flex items-center gap-2 text-sm font-medium ${estado.textClassName}`}>

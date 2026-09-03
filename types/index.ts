@@ -99,10 +99,12 @@ export interface Consultation {
   estado: ConsultationStatus;
   pago: {
     estado: "pendiente" | "aprobado" | "rechazado";
-    metodo: "mock" | "mercadopago";
+    metodo: "mock" | "mercadopago" | "manual";
     fechaAprobacion?: string;
     mpPreferenceId?: string;
     mpPaymentId?: string;
+    notaManual?: string; // motivo que escribe el médico al marcar un pago a mano (transferencia, efectivo, cortesía)
+    marcadoPorAdmin?: string; // usuario de la sesión admin (HTTP Basic Auth) que marcó el pago manual — trazabilidad
   };
   creadaEn: string;
   documentos: DocumentFile[];
