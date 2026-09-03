@@ -45,8 +45,24 @@ export const doctorProfile: DoctorProfile = {
     secundario: "#163A63",
   },
   consultaOnline: {
-    precio: 100,
     duracionMinutos: 15,
+    // Dos tipos con precios distintos — el paciente elige uno antes de ver
+    // horarios. El `precio` que se guarda en cada consulta sale de acá,
+    // nunca de un valor que mande el cliente.
+    tipos: [
+      {
+        id: "estudios",
+        nombre: "Consulta por estudios",
+        descripcion: "Para revisar resultados de estudios o análisis ya realizados.",
+        precio: 5000,
+      },
+      {
+        id: "normal",
+        nombre: "Consulta general",
+        descripcion: "Con receta o certificado si corresponde.",
+        precio: 25000,
+      },
+    ],
   },
   // Sala fija de Google Meet donde se hacen todas las consultas online.
   // Es un evento de Calendar (no una reunión instantánea), así que no caduca

@@ -202,7 +202,9 @@ export default function AdminDashboard() {
                   <div>
                     <p className="font-medium text-ink">{c.paciente.nombre} está esperando.</p>
                     <p className="text-sm text-muted">
-                      Consulta de {c.duracionMinutos} minutos · Pago confirmado: ${c.precio.toLocaleString("es-AR")}
+                      {doctorProfile.consultaOnline.tipos.find((t) => t.id === c.tipoConsulta)?.nombre ??
+                        c.tipoConsulta}{" "}
+                      · {c.duracionMinutos} minutos · Pago confirmado: ${c.precio.toLocaleString("es-AR")}
                     </p>
                   </div>
                   <button
@@ -337,7 +339,11 @@ export default function AdminDashboard() {
                       <p className="font-medium text-ink">
                         {esHoy ? "Hoy" : formatFechaCortaAR(c.fecha)} · {c.hora} — {c.paciente.nombre}
                       </p>
-                      <p className="text-sm text-muted">${c.precio.toLocaleString("es-AR")}</p>
+                      <p className="text-sm text-muted">
+                        {doctorProfile.consultaOnline.tipos.find((t) => t.id === c.tipoConsulta)?.nombre ??
+                          c.tipoConsulta}{" "}
+                        · ${c.precio.toLocaleString("es-AR")}
+                      </p>
                     </div>
                     <span className={`flex items-center gap-2 text-sm font-medium ${estado.textClassName}`}>
                       <span className={`h-2 w-2 rounded-full ${estado.dotClassName}`} />

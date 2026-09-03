@@ -5,5 +5,6 @@ export const DOCUMENT_TYPE_LABEL: Record<DocumentType, string> = {
   certificado: "Certificado",
   indicaciones: "Indicaciones",
   observaciones: "Observaciones",
+  solicitud_estudios: "Solicitud de estudios",
   otro: "Documento",
 };

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createConsultationConReserva, getAvailability, listConsultations, SlotOcupadoError } from "@/lib/store";
 import { genId } from "@/lib/ids";
 import { errorDeServidor } from "@/lib/apiErrors";
-import { Consultation, Patient } from "@/types";
+import { Consultation, Patient, TipoConsultaId } from "@/types";
 import { doctorProfile } from "@/data/doctorProfile";
 import { fechaDesdeISO, getSlotsForDate, isAvailableNow, toISODate } from "@/lib/availability";
 
@@ -30,8 +30,28 @@ export async function GET(req: Request) {
   }
 }
 
+const MAX_FOTOS_CREDENCIAL = 2;
+// ~5MB de imagen en base64 pesa ~6.7MB de texto (factor ~4/3) — margen
+// generoso para no rechazar una foto válida por el redondeo del encoding.
+const MAX_LARGO_DATA_URL = 7_500_000;
+
+function credencialFotosValidas(valor: unknown): valor is string[] {
+  if (!Array.isArray(valor)) return false;
+  if (valor.length > MAX_FOTOS_CREDENCIAL) return false;
+  return valor.every(
+    (foto) => typeof foto === "string" && foto.startsWith("data:image/") && foto.length <= MAX_LARGO_DATA_URL
+  );
+}
+
 export async function POST(req: Request) {
-  const body = (await req.json()) as { paciente: Patient; fecha: string; hora: string; esAhora?: boolean };
+  const body = (await req.json()) as {
+    paciente: Patient;
+    fecha: string;
+    hora: string;
+    esAhora?: boolean;
+    tipoConsulta?: TipoConsultaId;
+    credencialFotos?: unknown;
+  };
 
   if (!body.paciente?.nombre || !body.paciente?.dni || !body.paciente?.whatsapp || !body.paciente?.email) {
     return NextResponse.json({ error: "Faltan datos del paciente" }, { status: 400 });
@@ -39,6 +59,22 @@ export async function POST(req: Request) {
 
   if (!body.fecha || !body.hora) {
     return NextResponse.json({ error: "Faltan fecha u hora" }, { status: 400 });
+  }
+
+  // El precio nunca viene del cliente — se busca del lado del servidor a
+  // partir del tipo elegido, igual que ya se validaba fecha/hora contra la
+  // disponibilidad real en vez de confiar en lo que mande el front.
+  const tipo = doctorProfile.consultaOnline.tipos.find((t) => t.id === body.tipoConsulta);
+  if (!tipo) {
+    return NextResponse.json({ error: "Elegí un tipo de consulta válido." }, { status: 400 });
+  }
+
+  const credencialFotos = body.credencialFotos ?? [];
+  if (!credencialFotosValidas(credencialFotos)) {
+    return NextResponse.json(
+      { error: "Alguna de las fotos de la credencial no es válida (formato o tamaño)." },
+      { status: 400 }
+    );
   }
 
   // El cliente arma la lista de horarios a partir de esta misma
@@ -81,7 +117,9 @@ export async function POST(req: Request) {
     recordatorioEnviadoAt: null,
     documentacionEnviadaAt: null,
     recetaExternaUrl: null,
-    precio: doctorProfile.consultaOnline.precio,
+    tipoConsulta: tipo.id,
+    credencialFotos,
+    precio: tipo.precio,
     duracionMinutos: doctorProfile.consultaOnline.duracionMinutos,
     estado: "pendiente_pago",
     pago: { estado: "pendiente", metodo: "mock" },

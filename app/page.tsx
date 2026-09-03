@@ -24,7 +24,7 @@ import { linkWhatsAppConsultorio } from '@/lib/whatsapp';
 
 export default function LandingPage() {
   const d = doctorProfile;
-  const precioFormateado = d.consultaOnline.precio.toLocaleString('es-AR');
+  const precioDesde = Math.min(...d.consultaOnline.tipos.map((t) => t.precio)).toLocaleString('es-AR');
 
   return (
     <main className="min-h-screen bg-white">
@@ -99,7 +99,7 @@ export default function LandingPage() {
               </div>
               <div>
                 <p className="text-xs font-semibold uppercase text-muted mb-2">Tarifa</p>
-                <p className="text-3xl font-bold text-[#2C3E50]">${precioFormateado}</p>
+                <p className="text-3xl font-bold text-[#2C3E50]">Desde ${precioDesde}</p>
               </div>
             </div>
 

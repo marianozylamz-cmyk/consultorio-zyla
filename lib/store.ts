@@ -6,6 +6,7 @@ import {
   DocumentFile,
   NotificationLog,
   Patient,
+  TipoConsultaId,
   Weekday,
 } from "@/types";
 
@@ -214,6 +215,8 @@ interface ConsultationRow {
   recordatorio_enviado_at: string | null;
   documentacion_enviada_at: string | null;
   receta_externa_url: string | null;
+  tipo_consulta: TipoConsultaId;
+  credencial_fotos: string[] | null;
   precio: number;
   duracion_minutos: number;
   estado: ConsultationStatus;
@@ -234,6 +237,8 @@ function rowToConsultation(row: ConsultationRow): Consultation {
     recordatorioEnviadoAt: row.recordatorio_enviado_at,
     documentacionEnviadaAt: row.documentacion_enviada_at,
     recetaExternaUrl: row.receta_externa_url,
+    tipoConsulta: row.tipo_consulta,
+    credencialFotos: row.credencial_fotos ?? [],
     precio: Number(row.precio),
     duracionMinutos: row.duracion_minutos,
     estado: row.estado,
@@ -259,6 +264,8 @@ function consultationToInsertRow(c: Consultation) {
     documentos: c.documentos,
     notificaciones: c.notificaciones,
     creada_en: c.creadaEn,
+    tipo_consulta: c.tipoConsulta,
+    credencial_fotos: c.credencialFotos,
   };
 }
 
@@ -278,6 +285,8 @@ function partialConsultationToRow(patch: Partial<Consultation>) {
   if (patch.creadaEn !== undefined) row.creada_en = patch.creadaEn;
   if (patch.documentacionEnviadaAt !== undefined) row.documentacion_enviada_at = patch.documentacionEnviadaAt;
   if (patch.recetaExternaUrl !== undefined) row.receta_externa_url = patch.recetaExternaUrl;
+  if (patch.tipoConsulta !== undefined) row.tipo_consulta = patch.tipoConsulta;
+  if (patch.credencialFotos !== undefined) row.credencial_fotos = patch.credencialFotos;
   return row;
 }
 

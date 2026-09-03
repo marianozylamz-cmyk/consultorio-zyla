@@ -83,6 +83,7 @@ class EmailNotificationService implements NotificationChannel {
         DNI: ${p.dni}<br>
         Fecha: ${formatFechaLargaAR(consultation.fecha)}<br>
         Hora: ${consultation.hora} hs<br>
+        Tipo: ${doctorProfile.consultaOnline.tipos.find((t) => t.id === consultation.tipoConsulta)?.nombre ?? consultation.tipoConsulta}<br>
         WhatsApp: ${p.whatsapp}
       </p>
       ${botonEmail(linkAdmin, "Abrir consulta en el panel")}

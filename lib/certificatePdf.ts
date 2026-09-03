@@ -1,5 +1,5 @@
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
-import { CertificateInput, Consultation } from "@/types";
+import { CertificateInput, Consultation, SolicitudEstudiosInput } from "@/types";
 import { doctorProfile } from "@/data/doctorProfile";
 
 // ==========================================================
@@ -249,6 +249,114 @@ export async function generarObservacionesPdf(consultation: Consultation, texto:
   linea(`DNI Nº ${consultation.paciente.dni}`, { gap: 26 });
 
   parrafo(texto, { gap: 18 });
+
+  espacio(20);
+  page.drawLine({
+    start: { x: margenX, y: y + 8 },
+    end: { x: margenX + 160, y: y + 8 },
+    thickness: 0.75,
+    color: GRIS,
+  });
+  espacio(6);
+  linea(`Dr. ${doctorProfile.nombre}`, { bold: true, size: 10, color: GRIS, gap: 13 });
+  linea(doctorProfile.profesion, { size: 9, color: GRIS, gap: 13 });
+  linea(`M.P. ${doctorProfile.matricula}`, { size: 9, color: GRIS, gap: 13 });
+
+  const codigoVerificacion = `${consultation.id.slice(-8).toUpperCase()}-${Date.now().toString(36).toUpperCase()}`;
+  page.drawText(`Código de verificación: ${codigoVerificacion}`, {
+    x: margenX,
+    y: 50,
+    size: 8,
+    font,
+    color: GRIS,
+  });
+  page.drawText("Documento emitido digitalmente — Consultorio Online Dr. Zyla", {
+    x: margenX,
+    y: 38,
+    size: 8,
+    font,
+    color: GRIS,
+  });
+
+  const bytes = await pdfDoc.save();
+  return Buffer.from(bytes);
+}
+
+/**
+ * PDF de "Solicitud de estudios complementarios" — mismo estilo, mismos
+ * datos automáticos e identificación profesional que certificado y
+ * observaciones. Texto libre (no un selector estructurado): el médico
+ * escribe qué estudios pide, con un motivo/orientación diagnóstica
+ * opcional. Sin firma digital ni escaneada, igual que el resto.
+ */
+export async function generarSolicitudEstudiosPdf(
+  consultation: Consultation,
+  input: SolicitudEstudiosInput
+): Promise<Buffer> {
+  if (!doctorProfile.matricula) {
+    throw new Error(
+      "Falta cargar la matrícula del médico en data/doctorProfile.ts — no se puede emitir un documento sin ese dato."
+    );
+  }
+
+  const pdfDoc = await PDFDocument.create();
+  const page = pdfDoc.addPage([595.28, 841.89]); // A4
+  const { width, height } = page.getSize();
+
+  const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+
+  const margenX = 60;
+  const anchoUtil = width - margenX * 2;
+  let y = height - 70;
+
+  function linea(texto: string, opts: { bold?: boolean; size?: number; color?: ReturnType<typeof rgb>; gap?: number } = {}) {
+    const { bold = false, size = 11, color = NEGRO, gap = 18 } = opts;
+    page.drawText(texto, { x: margenX, y, size, font: bold ? fontBold : font, color });
+    y -= gap;
+  }
+
+  function parrafo(texto: string, opts: { size?: number; color?: ReturnType<typeof rgb>; gap?: number } = {}) {
+    const { size = 11, color = NEGRO, gap = 16 } = opts;
+    const lineas = envolverTexto(texto, font, size, anchoUtil);
+    for (const l of lineas) {
+      page.drawText(l, { x: margenX, y, size, font, color });
+      y -= gap;
+    }
+  }
+
+  function espacio(px = 10) {
+    y -= px;
+  }
+
+  linea("SOLICITUD DE ESTUDIOS COMPLEMENTARIOS", { bold: true, size: 16, color: NAVY, gap: 26 });
+  page.drawLine({
+    start: { x: margenX, y: y + 8 },
+    end: { x: width - margenX, y: y + 8 },
+    thickness: 1,
+    color: NAVY,
+  });
+  espacio(14);
+
+  const fechaEmision = new Intl.DateTimeFormat("es-AR", {
+    timeZone: "America/Argentina/Buenos_Aires",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(new Date());
+  linea(`Fecha: ${fechaEmision}`, { size: 10, color: GRIS, gap: 26 });
+
+  linea("Paciente:", { bold: true, gap: 16 });
+  linea(consultation.paciente.nombre, { size: 13, gap: 18 });
+  linea(`DNI Nº ${consultation.paciente.dni}`, { gap: 26 });
+
+  if (input.motivo) {
+    linea("Motivo / orientación diagnóstica:", { bold: true, gap: 16 });
+    parrafo(input.motivo, { gap: 22 });
+  }
+
+  linea("Estudios solicitados:", { bold: true, gap: 16 });
+  parrafo(input.estudios, { gap: 18 });
 
   espacio(20);
   page.drawLine({

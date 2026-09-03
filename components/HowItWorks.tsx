@@ -22,7 +22,7 @@ const PASOS: Paso[] = [
     numero: '2',
     icono: IconCard,
     titulo: 'Abonás en línea',
-    descripcion: `El pago de $${doctorProfile.consultaOnline.precio.toLocaleString('es-AR')} se confirma antes de empezar. Todos los medios, totalmente seguro. Los ${doctorProfile.consultaOnline.duracionMinutos} minutos son exclusivos para vos.`,
+    descripcion: `El pago se confirma antes de empezar, según el tipo de consulta que elijas. Todos los medios, totalmente seguro. Los ${doctorProfile.consultaOnline.duracionMinutos} minutos son exclusivos para vos.`,
   },
   {
     numero: '3',

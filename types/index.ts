@@ -32,10 +32,19 @@ export interface DoctorProfile {
     secundario: string;
   };
   consultaOnline: {
-    precio: number;
     duracionMinutos: number;
+    tipos: TipoConsulta[];
   };
   videollamadaUrl: string; // link fijo de Google Meet donde se hacen todas las consultas online
+}
+
+export type TipoConsultaId = "estudios" | "normal";
+
+export interface TipoConsulta {
+  id: TipoConsultaId;
+  nombre: string;
+  descripcion: string;
+  precio: number;
 }
 
 export interface DaySchedule {
@@ -100,9 +109,17 @@ export interface Consultation {
   notificaciones: NotificationLog[];
   documentacionEnviadaAt: string | null; // ISO timestamp — null hasta que se manda el email único con todos los documentos
   recetaExternaUrl: string | null; // link a la receta generada a mano en un sistema externo (ej. MisRx) — no lo genera esta app, solo lo guarda
+  tipoConsulta: TipoConsultaId;
+  credencialFotos: string[]; // 0 a 2 data URLs (fotos de la credencial de obra social) — opcional, el sistema no la valida ni la usa, solo la guarda para que el médico la vea
 }
 
-export type DocumentType = "receta" | "certificado" | "indicaciones" | "observaciones" | "otro";
+export type DocumentType =
+  | "receta"
+  | "certificado"
+  | "indicaciones"
+  | "observaciones"
+  | "solicitud_estudios"
+  | "otro";
 
 export interface DocumentFile {
   id: string;
@@ -124,6 +141,11 @@ export interface CertificateInput {
   licenciaHasta?: string; // ISO date
   destinatario?: string; // empresa / institución a la que se dirige
   observaciones?: string;
+}
+
+export interface SolicitudEstudiosInput {
+  estudios: string; // texto libre, obligatorio
+  motivo?: string; // orientación diagnóstica, opcional
 }
 
 export interface NotificationLog {

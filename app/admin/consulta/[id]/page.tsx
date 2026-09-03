@@ -5,27 +5,21 @@ import Link from "next/link";
 import { Consultation, DocumentType } from "@/types";
 import { CertificadoModal } from "@/components/CertificadoModal";
 import { ObservacionesModal } from "@/components/ObservacionesModal";
+import { SolicitudEstudiosModal } from "@/components/SolicitudEstudiosModal";
 import { SolicitudSecretariaModal } from "@/components/SolicitudSecretariaModal";
 import { IconCheck } from "@/components/icons";
 import { doctorProfile } from "@/data/doctorProfile";
 import { formatFechaLargaAR, toISODate } from "@/lib/availability";
 import { DOCUMENT_TYPE_LABEL } from "@/lib/documentLabels";
+import { fileToDataUrl } from "@/lib/files";
 
 const TIPOS: { value: DocumentType; label: string }[] = [
   { value: "receta", label: "Receta" },
   { value: "certificado", label: "Certificado" },
   { value: "indicaciones", label: "Indicaciones" },
+  { value: "solicitud_estudios", label: "Solicitud de estudios" },
   { value: "otro", label: "Otro" },
 ];
-
-function fileToDataUrl(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-}
 
 export default function AdminConsultaDetalle({ params }: { params: { id: string } }) {
   const [consultation, setConsultation] = useState<Consultation | null>(null);
@@ -33,6 +27,7 @@ export default function AdminConsultaDetalle({ params }: { params: { id: string 
   const [subiendo, setSubiendo] = useState(false);
   const [mostrarCertificado, setMostrarCertificado] = useState(false);
   const [mostrarObservaciones, setMostrarObservaciones] = useState(false);
+  const [mostrarSolicitudEstudios, setMostrarSolicitudEstudios] = useState(false);
   const [mostrarSecretaria, setMostrarSecretaria] = useState(false);
   const [accionEnCurso, setAccionEnCurso] = useState<"atender" | "llamada" | "finalizar" | null>(null);
   const [enviandoDocumentacion, setEnviandoDocumentacion] = useState(false);
@@ -261,6 +256,11 @@ export default function AdminConsultaDetalle({ params }: { params: { id: string 
                   Crear observaciones
                 </button>
               )}
+              {puedeCertificar && (
+                <button className="btn-secondary !py-2.5" onClick={() => setMostrarSolicitudEstudios(true)}>
+                  Solicitar estudios complementarios
+                </button>
+              )}
               <button className="btn-secondary !py-2.5" onClick={() => setMostrarSecretaria(true)}>
                 Solicitar receta a secretaría
               </button>
@@ -275,11 +275,43 @@ export default function AdminConsultaDetalle({ params }: { params: { id: string 
             <div className="text-ink break-all">{c.paciente.email}</div>
             <div className="text-muted">Fecha</div>
             <div className="text-ink">{c.fecha} · {c.hora}</div>
+            <div className="text-muted">Tipo</div>
+            <div className="text-ink">
+              {doctorProfile.consultaOnline.tipos.find((t) => t.id === c.tipoConsulta)?.nombre ?? c.tipoConsulta}
+            </div>
             <div className="text-muted">Precio</div>
             <div className="text-ink">${c.precio.toLocaleString("es-AR")}</div>
             <div className="text-muted">Pago</div>
             <div className="text-ink capitalize">{c.pago.estado}</div>
           </div>
+        </div>
+
+        <div className="card">
+          <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-muted">
+            Credencial de obra social
+          </h2>
+          {c.credencialFotos.length === 0 ? (
+            <p className="text-sm text-muted">El paciente no subió credencial de obra social.</p>
+          ) : (
+            <div className="flex flex-wrap gap-3">
+              {c.credencialFotos.map((foto, i) => (
+                <a
+                  key={i}
+                  href={foto}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block overflow-hidden rounded-xl border border-line"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={foto}
+                    alt={`Credencial de obra social ${i + 1}`}
+                    className="h-28 w-28 object-cover transition-opacity hover:opacity-80"
+                  />
+                </a>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="card">
@@ -451,6 +483,17 @@ export default function AdminConsultaDetalle({ params }: { params: { id: string 
           onCerrar={() => setMostrarObservaciones(false)}
           onCreado={() => {
             setMostrarObservaciones(false);
+            cargar();
+          }}
+        />
+      )}
+
+      {mostrarSolicitudEstudios && (
+        <SolicitudEstudiosModal
+          consultationId={c.id}
+          onCerrar={() => setMostrarSolicitudEstudios(false)}
+          onCreado={() => {
+            setMostrarSolicitudEstudios(false);
             cargar();
           }}
         />

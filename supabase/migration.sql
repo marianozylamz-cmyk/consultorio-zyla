@@ -95,3 +95,29 @@ alter table consultations add column if not exists documentacion_enviada_at time
 --
 -- Correr a mano en el SQL Editor de Supabase.
 alter table consultations add column if not exists receta_externa_url text;
+
+-- ==========================================================
+-- `consultations.tipo_consulta` — "estudios" ($5.000) o "normal"
+-- ($25.000, con receta/certificado si corresponde). El precio real de
+-- cada consulta sigue viniendo de la columna `precio` de siempre (el
+-- servidor lo calcula a partir de este tipo al crear la consulta, nunca
+-- confía en un precio que mande el cliente) — esta columna es solo para
+-- que el médico vea de un vistazo qué tipo es, sin tener que adivinar
+-- por el monto.
+--
+-- Default 'normal' para las consultas viejas (creadas antes de este
+-- cambio, cuando había un solo precio fijo) — es la mejor aproximación
+-- razonable, no hay forma de saber retroactivamente cuál habrían elegido.
+--
+-- Correr a mano en el SQL Editor de Supabase.
+alter table consultations add column if not exists tipo_consulta text not null default 'normal';
+
+-- ==========================================================
+-- `consultations.credencial_fotos` — 0 a 2 fotos (data URL base64) de la
+-- credencial de obra social que el paciente puede subir opcionalmente al
+-- reservar. Mismo patrón jsonb que `documentos`/`notificaciones`. Esta
+-- app no la valida ni la usa para nada automático, solo la guarda para
+-- que el médico la vea en el panel.
+--
+-- Correr a mano en el SQL Editor de Supabase.
+alter table consultations add column if not exists credencial_fotos jsonb not null default '[]'::jsonb;

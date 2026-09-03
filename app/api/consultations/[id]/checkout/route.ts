@@ -24,9 +24,10 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
       return NextResponse.json({ modo: "mock" as const });
     }
 
+    const tipo = doctorProfile.consultaOnline.tipos.find((t) => t.id === consultation.tipoConsulta);
     const preferencia = await crearPreferenciaPago({
       consultationId: consultation.id,
-      titulo: `Consulta online — Dr. ${doctorProfile.nombre}`,
+      titulo: `${tipo?.nombre ?? "Consulta online"} — Dr. ${doctorProfile.nombre}`,
       precio: consultation.precio,
     });
 

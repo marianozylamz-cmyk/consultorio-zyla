@@ -4,10 +4,15 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { doctorProfile } from "@/data/doctorProfile";
-import { Patient } from "@/types";
+import { Patient, TipoConsultaId } from "@/types";
 import { formatFechaLargaAR, horaActualArgentina } from "@/lib/availability";
+import { fileToDataUrl } from "@/lib/files";
 
-type Step = "datos" | "horario" | "checkout";
+type Step = "tipo" | "datos" | "horario" | "checkout";
+
+const TIPOS_IMAGEN_CREDENCIAL = ["image/jpeg", "image/jpg", "image/png"];
+const MAX_MB_CREDENCIAL = 5;
+const MAX_FOTOS_CREDENCIAL = 2;
 
 interface AvailabilityData {
   disponibleAhora: boolean;
@@ -24,10 +29,16 @@ interface UpcomingDay {
 
 export default function ConsultaPage() {
   const router = useRouter();
-  const [step, setStep] = useState<Step>("datos");
+  const [step, setStep] = useState<Step>("tipo");
+
+  const [tipoConsultaId, setTipoConsultaId] = useState<TipoConsultaId | null>(null);
+  const tipoSeleccionado = doctorProfile.consultaOnline.tipos.find((t) => t.id === tipoConsultaId) ?? null;
 
   const [paciente, setPaciente] = useState<Patient>({ nombre: "", dni: "", whatsapp: "", email: "" });
   const [errores, setErrores] = useState<Partial<Record<keyof Patient, string>>>({});
+
+  const [credencialFotos, setCredencialFotos] = useState<string[]>([]);
+  const [errorCredencial, setErrorCredencial] = useState<string | null>(null);
 
   const [diasDisponibles, setDiasDisponibles] = useState<UpcomingDay[] | null>(null);
   const [fechaSeleccionada, setFechaSeleccionada] = useState<string | null>(null);
@@ -66,7 +77,23 @@ export default function ConsultaPage() {
       .catch(() => setAvailability(null));
   }, [fechaSeleccionada]);
 
-  const precioFormateado = doctorProfile.consultaOnline.precio.toLocaleString("es-AR");
+  async function agregarFotoCredencial(file: File) {
+    setErrorCredencial(null);
+    if (!TIPOS_IMAGEN_CREDENCIAL.includes(file.type)) {
+      setErrorCredencial("Solo se aceptan imágenes JPG o PNG.");
+      return;
+    }
+    if (file.size > MAX_MB_CREDENCIAL * 1024 * 1024) {
+      setErrorCredencial(`Esa foto pesa más de ${MAX_MB_CREDENCIAL}MB. Subí una más liviana.`);
+      return;
+    }
+    const dataUrl = await fileToDataUrl(file);
+    setCredencialFotos((prev) => [...prev, dataUrl].slice(0, MAX_FOTOS_CREDENCIAL));
+  }
+
+  function quitarFotoCredencial(index: number) {
+    setCredencialFotos((prev) => prev.filter((_, i) => i !== index));
+  }
 
   function validarDatos(): boolean {
     const nuevosErrores: Partial<Record<keyof Patient, string>> = {};
@@ -122,6 +149,8 @@ export default function ConsultaPage() {
             fecha: availability?.fecha ?? fechaSeleccionada ?? hoyISO,
             hora: horaElegida,
             esAhora,
+            tipoConsulta: tipoConsultaId,
+            credencialFotos,
           }),
         });
 
@@ -195,6 +224,7 @@ export default function ConsultaPage() {
   }
 
   const pasos: { key: Step; label: string }[] = [
+    { key: "tipo", label: "Tipo" },
     { key: "datos", label: "Tus datos" },
     { key: "horario", label: "Horario" },
     { key: "checkout", label: "Pago" },
@@ -230,7 +260,38 @@ export default function ConsultaPage() {
         <p className="mt-1 text-[15px] text-muted">
           Consulta médica particular de {doctorProfile.consultaOnline.duracionMinutos} minutos.
         </p>
-        <p className="mt-3 text-3xl font-semibold text-navy">${precioFormateado}</p>
+        {tipoSeleccionado && (
+          <p className="mt-3 text-3xl font-semibold text-navy">
+            ${tipoSeleccionado.precio.toLocaleString("es-AR")}
+          </p>
+        )}
+
+        {/* PASO 0: TIPO DE CONSULTA */}
+        {step === "tipo" && (
+          <div className="mt-10 animate-fadeIn space-y-3">
+            <p className="text-sm font-medium text-ink">Elegí el tipo de consulta</p>
+            {doctorProfile.consultaOnline.tipos.map((tipo) => (
+              <button
+                key={tipo.id}
+                onClick={() => {
+                  setTipoConsultaId(tipo.id);
+                  setStep("datos");
+                }}
+                className="card hover-lift block w-full text-left"
+              >
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <p className="font-semibold text-ink">{tipo.nombre}</p>
+                    <p className="mt-1 text-sm text-muted">{tipo.descripcion}</p>
+                  </div>
+                  <p className="shrink-0 text-xl font-semibold text-navy">
+                    ${tipo.precio.toLocaleString("es-AR")}
+                  </p>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* PASO 1: DATOS */}
         {step === "datos" && (
@@ -321,6 +382,53 @@ export default function ConsultaPage() {
               )}
             </div>
 
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-ink">
+                Credencial de obra social <span className="font-normal text-muted">(opcional)</span>
+              </label>
+              <p className="mb-2 text-xs text-muted">Podés subir hasta 2 fotos (por ejemplo, frente y dorso).</p>
+
+              {credencialFotos.length > 0 && (
+                <div className="mb-3 space-y-2">
+                  {credencialFotos.map((foto, i) => (
+                    <div
+                      key={i}
+                      className="flex items-center justify-between rounded-xl border border-line px-3 py-2"
+                    >
+                      <div className="flex items-center gap-2">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={foto} alt={`Credencial ${i + 1}`} className="h-10 w-10 rounded-lg object-cover" />
+                        <span className="text-sm text-ink">Foto {i + 1}</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => quitarFotoCredencial(i)}
+                        className="text-xs font-medium text-red-600 hover:underline"
+                      >
+                        Quitar
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {credencialFotos.length < MAX_FOTOS_CREDENCIAL && (
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/jpg"
+                  capture="environment"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) agregarFotoCredencial(file);
+                    e.target.value = "";
+                  }}
+                  className="text-sm text-muted file:mr-3 file:rounded-full file:border-0 file:bg-navy file:px-4 file:py-2 file:text-xs file:font-medium file:text-white hover:file:bg-navy-light"
+                />
+              )}
+
+              {errorCredencial && <p className="mt-1.5 text-xs text-red-600">{errorCredencial}</p>}
+            </div>
+
             <button
               className="btn-primary mt-4 w-full"
               onClick={() => validarDatos() && setStep("horario")}
@@ -328,6 +436,9 @@ export default function ConsultaPage() {
               Continuar
             </button>
             <p className="text-center text-xs text-muted">No necesitás crear una cuenta.</p>
+            <button className="w-full text-center text-sm text-muted hover:text-ink" onClick={() => setStep("tipo")}>
+              ← Volver
+            </button>
           </div>
         )}
 
@@ -421,6 +532,10 @@ export default function ConsultaPage() {
                 <span className="font-medium text-ink">Dr. Juan Manuel Zyla</span>
               </div>
               <div className="flex justify-between text-sm">
+                <span className="text-muted">Tipo de consulta</span>
+                <span className="text-ink">{tipoSeleccionado?.nombre ?? "—"}</span>
+              </div>
+              <div className="flex justify-between text-sm">
                 <span className="text-muted">Duración</span>
                 <span className="text-ink">{doctorProfile.consultaOnline.duracionMinutos} minutos</span>
               </div>
@@ -446,7 +561,9 @@ export default function ConsultaPage() {
               </div>
               <div className="flex justify-between border-t border-line pt-4 text-base">
                 <span className="font-medium text-ink">Precio</span>
-                <span className="font-semibold text-navy">${precioFormateado}</span>
+                <span className="font-semibold text-navy">
+                  ${(tipoSeleccionado?.precio ?? 0).toLocaleString("es-AR")}
+                </span>
               </div>
             </div>
 
