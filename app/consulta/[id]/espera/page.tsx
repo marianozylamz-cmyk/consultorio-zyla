@@ -8,6 +8,7 @@ import { IconCheck, IconWhatsApp } from "@/components/icons";
 import { formatFechaLargaAR } from "@/lib/availability";
 import { linkWhatsAppConsultorio } from "@/lib/whatsapp";
 import { DOCUMENT_TYPE_LABEL } from "@/lib/documentLabels";
+import { ChatSoporte } from "@/components/ChatSoporte";
 
 // Si a los 3 minutos el médico todavía no atendió, mostramos una salida —
 // sin esto, un paciente esperando de más no tiene ninguna alternativa
@@ -165,6 +166,8 @@ export default function SalaDeEspera({ params }: { params: { id: string } }) {
           <Link href="/" className="btn-primary mt-8 inline-block">
             Volver al inicio
           </Link>
+
+          <ChatSoporte consultationId={consultation.id} paciente={consultation.paciente} />
         </div>
       </main>
     );
@@ -274,6 +277,8 @@ export default function SalaDeEspera({ params }: { params: { id: string } }) {
         <Link href="/" className="mt-6 inline-block text-sm text-muted hover:text-ink">
           ← Volver al inicio
         </Link>
+
+        <ChatSoporte consultationId={consultation.id} paciente={consultation.paciente} />
       </div>
     </main>
   );

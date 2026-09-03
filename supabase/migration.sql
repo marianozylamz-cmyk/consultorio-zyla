@@ -121,3 +121,17 @@ alter table consultations add column if not exists tipo_consulta text not null d
 --
 -- Correr a mano en el SQL Editor de Supabase.
 alter table consultations add column if not exists credencial_fotos jsonb not null default '[]'::jsonb;
+
+-- ==========================================================
+-- `consultations.mensajes` — chat simple paciente↔médico dentro de una
+-- consulta ya creada, sin cuentas de ningún lado (ver
+-- components/ChatSoporte.tsx y app/api/consultations/[id]/mensajes/*).
+-- Mismo patrón jsonb que `documentos`/`notificaciones`.
+--
+-- `aviso_mensaje_enviado_at` — cuándo se mandó el último mail de "nueva
+-- respuesta" al paciente; throttle de 5 minutos para no saturarlo si el
+-- médico escribe varios mensajes seguidos.
+--
+-- Correr a mano en el SQL Editor de Supabase.
+alter table consultations add column if not exists mensajes jsonb not null default '[]'::jsonb;
+alter table consultations add column if not exists aviso_mensaje_enviado_at timestamptz;

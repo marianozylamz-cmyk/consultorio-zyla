@@ -126,6 +126,8 @@ export async function POST(req: Request) {
     creadaEn: new Date().toISOString(),
     documentos: [],
     notificaciones: [],
+    mensajes: [],
+    avisoMensajeEnviadoAt: null,
   };
 
   try {

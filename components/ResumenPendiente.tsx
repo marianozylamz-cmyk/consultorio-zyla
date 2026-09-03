@@ -6,6 +6,7 @@ import { doctorProfile } from "@/data/doctorProfile";
 import { Consultation } from "@/types";
 import { formatFechaLargaAR } from "@/lib/availability";
 import { quitarMiConsulta } from "@/lib/misConsultas";
+import { ChatSoporte } from "./ChatSoporte";
 
 /**
  * Tarjeta de "ya tenías una reserva en curso" — para cuando el paciente
@@ -172,6 +173,8 @@ export function ResumenPendiente({
         >
           ¿No era esto? Hacer una reserva nueva
         </button>
+
+        <ChatSoporte consultationId={consultation.id} paciente={consultation.paciente} />
       </div>
     </main>
   );

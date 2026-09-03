@@ -113,6 +113,18 @@ export interface Consultation {
   recetaExternaUrl: string | null; // link a la receta generada a mano en un sistema externo (ej. MisRx) — no lo genera esta app, solo lo guarda
   tipoConsulta: TipoConsultaId;
   credencialFotos: string[]; // 0 a 2 data URLs (fotos de la credencial de obra social) — opcional, el sistema no la valida ni la usa, solo la guarda para que el médico la vea
+  mensajes: MensajeSoporte[]; // chat simple paciente↔médico dentro de esta consulta, sin cuentas — ver componente ChatSoporte
+  avisoMensajeEnviadoAt: string | null; // ISO timestamp del último mail de "nueva respuesta" mandado — throttle de 5 min entre avisos
+}
+
+export interface MensajeSoporte {
+  id: string;
+  autor: "paciente" | "medico";
+  texto: string;
+  telefonoContacto?: string; // solo se completa en el primer mensaje del paciente
+  creadoEn: string;
+  leidoPorMedico: boolean;
+  leidoPorPaciente: boolean;
 }
 
 export type DocumentType =

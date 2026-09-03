@@ -4,6 +4,7 @@ import {
   Consultation,
   ConsultationStatus,
   DocumentFile,
+  MensajeSoporte,
   NotificationLog,
   Patient,
   TipoConsultaId,
@@ -223,6 +224,8 @@ interface ConsultationRow {
   pago: Consultation["pago"];
   documentos: DocumentFile[];
   notificaciones: NotificationLog[];
+  mensajes: MensajeSoporte[] | null;
+  aviso_mensaje_enviado_at: string | null;
   creada_en: string;
 }
 
@@ -246,6 +249,8 @@ function rowToConsultation(row: ConsultationRow): Consultation {
     creadaEn: row.creada_en,
     documentos: row.documentos ?? [],
     notificaciones: row.notificaciones ?? [],
+    mensajes: row.mensajes ?? [],
+    avisoMensajeEnviadoAt: row.aviso_mensaje_enviado_at,
   };
 }
 
@@ -263,6 +268,7 @@ function consultationToInsertRow(c: Consultation) {
     pago: c.pago,
     documentos: c.documentos,
     notificaciones: c.notificaciones,
+    mensajes: c.mensajes,
     creada_en: c.creadaEn,
     tipo_consulta: c.tipoConsulta,
     credencial_fotos: c.credencialFotos,
@@ -282,6 +288,8 @@ function partialConsultationToRow(patch: Partial<Consultation>) {
   if (patch.pago !== undefined) row.pago = patch.pago;
   if (patch.documentos !== undefined) row.documentos = patch.documentos;
   if (patch.notificaciones !== undefined) row.notificaciones = patch.notificaciones;
+  if (patch.mensajes !== undefined) row.mensajes = patch.mensajes;
+  if (patch.avisoMensajeEnviadoAt !== undefined) row.aviso_mensaje_enviado_at = patch.avisoMensajeEnviadoAt;
   if (patch.creadaEn !== undefined) row.creada_en = patch.creadaEn;
   if (patch.documentacionEnviadaAt !== undefined) row.documentacion_enviada_at = patch.documentacionEnviadaAt;
   if (patch.recetaExternaUrl !== undefined) row.receta_externa_url = patch.recetaExternaUrl;
@@ -484,4 +492,61 @@ export async function removeDocumentFromConsultation(
  */
 export async function marcarDocumentacionEnviada(consultationId: string): Promise<Consultation | undefined> {
   return updateConsultation(consultationId, { documentacionEnviadaAt: new Date().toISOString() });
+}
+
+// ---- Mensajes de soporte ----
+// Chat simple paciente↔médico dentro de una consulta ya creada, sin
+// cuentas de ningún lado — mismo patrón read-modify-write que documentos.
+
+export async function addMensajeToConsultation(
+  consultationId: string,
+  mensaje: MensajeSoporte
+): Promise<Consultation | undefined> {
+  const consultation = await getConsultation(consultationId);
+  if (!consultation) return undefined;
+
+  return updateConsultation(consultationId, { mensajes: [...consultation.mensajes, mensaje] });
+}
+
+/** El paciente abrió el panel de chat: sus mensajes pendientes del médico quedan leídos. */
+export async function marcarMensajesLeidosPorPaciente(consultationId: string): Promise<Consultation | undefined> {
+  const consultation = await getConsultation(consultationId);
+  if (!consultation) return undefined;
+
+  const mensajes = consultation.mensajes.map((m) => (m.autor === "medico" ? { ...m, leidoPorPaciente: true } : m));
+  return updateConsultation(consultationId, { mensajes });
+}
+
+const CINCO_MINUTOS_MS = 5 * 60 * 1000;
+
+/**
+ * Agrega la respuesta del médico y marca los mensajes del paciente como
+ * leídos por el médico en el mismo update (responder implica haberlos
+ * visto). Además decide si corresponde mandar el mail de aviso al
+ * paciente: throttle de 5 minutos desde el último aviso mandado para
+ * esta consulta, para no saturarlo si el médico escribe varios mensajes
+ * seguidos.
+ */
+export async function responderComoMedico(
+  consultationId: string,
+  mensaje: MensajeSoporte
+): Promise<{ consultation: Consultation; debeAvisar: boolean } | undefined> {
+  const consultation = await getConsultation(consultationId);
+  if (!consultation) return undefined;
+
+  const mensajes = [
+    ...consultation.mensajes.map((m) => (m.autor === "paciente" ? { ...m, leidoPorMedico: true } : m)),
+    mensaje,
+  ];
+
+  const ahoraMs = new Date(mensaje.creadoEn).getTime();
+  const ultimoAvisoMs = consultation.avisoMensajeEnviadoAt ? new Date(consultation.avisoMensajeEnviadoAt).getTime() : 0;
+  const debeAvisar = ahoraMs - ultimoAvisoMs > CINCO_MINUTOS_MS;
+
+  const patch: Partial<Consultation> = { mensajes };
+  if (debeAvisar) patch.avisoMensajeEnviadoAt = mensaje.creadoEn;
+
+  const updated = await updateConsultation(consultationId, patch);
+  if (!updated) return undefined;
+  return { consultation: updated, debeAvisar };
 }

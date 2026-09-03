@@ -59,6 +59,9 @@ export default function AdminConsultaDetalle({ params }: { params: { id: string 
   const [recetaLinkCopiado, setRecetaLinkCopiado] = useState(false);
   const [enviandoReceta, setEnviandoReceta] = useState(false);
   const [recetaEnviada, setRecetaEnviada] = useState(false);
+  const [mensajeTexto, setMensajeTexto] = useState("");
+  const [enviandoMensaje, setEnviandoMensaje] = useState(false);
+  const [errorMensaje, setErrorMensaje] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   // Para emergencias: si el paciente no puede entrar desde su sala de
@@ -145,6 +148,28 @@ export default function AdminConsultaDetalle({ params }: { params: { id: string 
       await cargar();
     } finally {
       setEliminandoDocId(null);
+    }
+  }
+
+  async function responderMensaje() {
+    if (!mensajeTexto.trim() || enviandoMensaje) return;
+    setEnviandoMensaje(true);
+    setErrorMensaje(null);
+    try {
+      const res = await fetch(`/api/consultations/${params.id}/mensajes/medico`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ texto: mensajeTexto.trim() }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setErrorMensaje(data.error ?? "No se pudo enviar la respuesta.");
+        return;
+      }
+      setMensajeTexto("");
+      await cargar();
+    } finally {
+      setEnviandoMensaje(false);
     }
   }
 
@@ -480,6 +505,59 @@ export default function AdminConsultaDetalle({ params }: { params: { id: string 
                 {enviandoDocumentacion ? "Enviando…" : "Enviar documentación al paciente"}
               </button>
             )}
+          </div>
+        </div>
+
+        <div className="card">
+          <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-muted">Mensajes</h2>
+
+          {c.mensajes.find((m) => m.telefonoContacto) && (
+            <p className="mb-4 text-sm text-ink">
+              <span className="text-muted">Tel. de contacto: </span>
+              <strong>{c.mensajes.find((m) => m.telefonoContacto)?.telefonoContacto}</strong>
+            </p>
+          )}
+
+          {c.mensajes.length === 0 ? (
+            <p className="mb-4 text-sm text-muted">Todavía no hay mensajes.</p>
+          ) : (
+            <div className="mb-4 max-h-72 space-y-2 overflow-y-auto">
+              {c.mensajes.map((m) => (
+                <div
+                  key={m.id}
+                  className={`rounded-lg px-3 py-2 text-sm ${
+                    m.autor === "paciente" ? "bg-bgsoft text-ink" : "ml-6 bg-navy text-white"
+                  }`}
+                >
+                  <p>{m.texto}</p>
+                  <p className={`mt-1 text-[11px] ${m.autor === "paciente" ? "text-muted" : "text-white/70"}`}>
+                    {m.autor === "paciente" ? c.paciente.nombre : "Vos"} · {formatFechaHoraAR(m.creadoEn)}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {errorMensaje && (
+            <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {errorMensaje}
+            </div>
+          )}
+
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <textarea
+              className="input-field min-h-[70px] resize-y text-sm"
+              value={mensajeTexto}
+              onChange={(e) => setMensajeTexto(e.target.value)}
+              placeholder="Escribí tu respuesta..."
+            />
+            <button
+              className="btn-secondary shrink-0"
+              disabled={enviandoMensaje || !mensajeTexto.trim()}
+              onClick={responderMensaje}
+            >
+              {enviandoMensaje ? "Enviando…" : "Responder"}
+            </button>
           </div>
         </div>
 

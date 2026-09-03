@@ -96,6 +96,14 @@ export default function AdminDashboard() {
   // No es solo "de hoy" pese al nombre viejo: incluye cualquier fecha, por
   // eso cada item de la lista siempre muestra fecha además de hora.
   const listado = consultations.filter((c) => c.estado !== "rechazada");
+  // A propósito sobre TODAS las consultas, sin filtrar por estado: un
+  // paciente puede escribir después de que su consulta quedó "rechazada"
+  // (ej. pagó pero el webhook de Mercado Pago no confirmó a tiempo) — esa
+  // fila no aparece en `listado`, así que si filtráramos igual acá el
+  // aviso quedaría invisible justo en el caso donde más hace falta.
+  const conMensajesSinLeer = consultations.filter((c) =>
+    c.mensajes.some((m) => m.autor === "paciente" && !m.leidoPorMedico)
+  );
 
   async function toggleActivo() {
     if (!availability) return;
@@ -207,6 +215,30 @@ export default function AdminDashboard() {
                     {atendiendoId === c.id ? "Atendiendo…" : "Atender"}
                   </button>
                 </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ALERTA MENSAJES SIN LEER */}
+        {conMensajesSinLeer.length > 0 && (
+          <div className="animate-fadeIn rounded-xl2 border border-amber-200 bg-amber-50 p-5">
+            <div className="mb-3 flex items-center gap-2 text-amber-800">
+              <IconBell className="h-5 w-5" />
+              <span className="font-semibold">
+                {conMensajesSinLeer.length === 1 ? "Mensaje nuevo" : `${conMensajesSinLeer.length} mensajes nuevos`}
+              </span>
+            </div>
+            <div className="space-y-3">
+              {conMensajesSinLeer.map((c) => (
+                <Link
+                  key={c.id}
+                  href={`/admin/consulta/${c.id}`}
+                  className="flex items-center justify-between rounded-xl bg-white p-4 transition-colors hover:border-navy/30"
+                >
+                  <p className="font-medium text-ink">{c.paciente.nombre} te escribió.</p>
+                  <span className="text-sm text-navy">Ver →</span>
+                </Link>
               ))}
             </div>
           </div>

@@ -235,6 +235,22 @@ class NotificationService {
     `;
     return enviarEmail({ to: consultation.paciente.email, subject: "Tu turno es en 1 hora", html });
   }
+
+  /**
+   * Aviso de que el médico respondió en el chat de la consulta. El
+   * throttle de 5 minutos entre avisos (para no saturar al paciente si
+   * el médico escribe varios mensajes seguidos) se decide ANTES de
+   * llamar acá — ver responderComoMedico en lib/store.ts.
+   */
+  async notifyNuevoMensaje(consultation: Consultation): Promise<{ enviado: boolean }> {
+    const html = `
+      <p>Hola ${consultation.paciente.nombre},</p>
+      <p>El Dr. ${doctorProfile.nombre} te respondió en tu consulta. Podés verlo acá:</p>
+      ${botonEmail(linkSeguimientoDe(consultation), "Ver mi turno")}
+      <p>Saludos,<br>Dr. ${doctorProfile.nombre}</p>
+    `;
+    return enviarEmail({ to: consultation.paciente.email, subject: "Tenés una respuesta nueva", html });
+  }
 }
 
 export const notificationService = new NotificationService();

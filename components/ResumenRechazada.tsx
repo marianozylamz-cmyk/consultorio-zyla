@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { doctorProfile } from "@/data/doctorProfile";
 import { Consultation } from "@/types";
+import { ChatSoporte } from "./ChatSoporte";
 
 /** Pantalla de cierre para cuando el pago nunca se confirmó (rechazado, o expiró sin completarse). */
 export function ResumenRechazada({
@@ -38,6 +39,8 @@ export function ResumenRechazada({
         <button className="btn-primary mt-8 w-full" onClick={onNuevaReserva}>
           Hacer una reserva nueva
         </button>
+
+        <ChatSoporte consultationId={consultation.id} paciente={consultation.paciente} />
       </div>
     </main>
   );

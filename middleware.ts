@@ -61,6 +61,7 @@ function esRutaDeMedico(pathname: string, method: string): boolean {
     if (resto === "/solicitud-estudios" && method === "POST") return true;
     if (resto === "/enviar-documentacion" && method === "POST") return true;
     if (resto === "/marcar-pagado" && method === "POST") return true;
+    if (resto === "/mensajes/medico" && method === "POST") return true;
     if (resto === "/receta-externa" && method === "POST") return true;
     if (resto === "/receta-externa/enviar" && method === "POST") return true;
   }
