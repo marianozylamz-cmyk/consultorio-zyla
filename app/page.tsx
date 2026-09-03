@@ -250,9 +250,14 @@ export default function LandingPage() {
                 <p className="text-sm font-semibold text-[#2C3E50]">Dr. {d.nombre}</p>
                 <p className="text-xs text-muted">{d.especialidad}</p>
               </div>
-              <p className="text-xs text-muted">
-                © {new Date().getFullYear()} Consultorio Online. Todos los derechos reservados.
-              </p>
+              <div className="flex flex-col items-start gap-1 sm:items-end">
+                <Link href="/terminos" className="text-xs text-muted hover:text-[#1B6E5C] hover:underline">
+                  Términos y Condiciones
+                </Link>
+                <p className="text-xs text-muted">
+                  © {new Date().getFullYear()} Consultorio Online. Todos los derechos reservados.
+                </p>
+              </div>
             </div>
           </div>
         </div>
