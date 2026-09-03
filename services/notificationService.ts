@@ -40,6 +40,20 @@ function linkReprogramarDe(consultation: Consultation): string {
   return `${baseUrl}/consulta/${consultation.id}/reprogramar`;
 }
 
+/**
+ * Link de seguimiento de "mi turno" — funciona desde cualquier
+ * dispositivo, no depende del localStorage del navegador que reservó (ver
+ * components/SeguimientoConsulta.tsx). Resuelve el estado real sea cual
+ * sea (pendiente de pago, confirmado, en curso, finalizado), así que
+ * reemplaza al link directo a la sala de espera en el mail de
+ * confirmación — si el turno ya está confirmado, este mismo link
+ * redirige para allá solo.
+ */
+function linkSeguimientoDe(consultation: Consultation): string {
+  const baseUrl = process.env.APP_BASE_URL ?? "http://localhost:3000";
+  return `${baseUrl}/consulta/${consultation.id}/seguimiento`;
+}
+
 /** Botón con estilos inline — los clientes de mail ignoran <style>/clases, así que va todo en el atributo. */
 function botonEmail(href: string, texto: string): string {
   return `<p style="margin:24px 0"><a href="${href}" style="background:#1B6E5C;color:#ffffff;padding:12px 24px;border-radius:9999px;text-decoration:none;font-weight:600;display:inline-block">${texto}</a></p>`;
@@ -193,8 +207,9 @@ class NotificationService {
       <p>Hola ${consultation.paciente.nombre},</p>
       <p>Tu turno con el Dr. ${doctorProfile.nombre} quedó confirmado:</p>
       <p style="font-size:18px"><strong>${fecha} a las ${consultation.hora} hs</strong></p>
-      <p>Te vamos a avisar de nuevo 1 hora antes. Cuando sea el momento, entrá a tu sala de espera desde acá:</p>
-      ${botonEmail(linkEsperaDe(consultation), "Ingresar a mi sala de espera")}
+      <p>Te vamos a avisar de nuevo 1 hora antes. Guardá este link — desde acá vas a poder ver el estado
+      de tu turno, confirmar que se registró el pago, y entrar a la videollamada cuando llegue el horario:</p>
+      ${botonEmail(linkSeguimientoDe(consultation), "Ver mi turno")}
       <p style="font-size:13px;color:#6b7487">
         ¿Necesitás cambiar el día u horario?
         <a href="${linkReprogramarDe(consultation)}">Reprogramá tu turno acá</a>.

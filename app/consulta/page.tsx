@@ -7,6 +7,8 @@ import { doctorProfile } from "@/data/doctorProfile";
 import { Patient, TipoConsultaId } from "@/types";
 import { formatFechaLargaAR, horaActualArgentina } from "@/lib/availability";
 import { fileToDataUrl } from "@/lib/files";
+import { agregarMiConsulta, leerMisConsultas, quitarMiConsulta } from "@/lib/misConsultas";
+import { SeguimientoConsulta } from "@/components/SeguimientoConsulta";
 
 type Step = "tipo" | "datos" | "horario" | "checkout";
 
@@ -51,6 +53,22 @@ export default function ConsultaPage() {
   const [consultationId, setConsultationId] = useState<string | null>(null);
   const [modoPago, setModoPago] = useState<"mercadopago" | "mock" | null>(null);
   const [errorPago, setErrorPago] = useState<string | null>(null);
+
+  // Si este navegador ya tiene una consulta guardada (ver
+  // lib/misConsultas.ts), esa manda por sobre el wizard — la resuelve
+  // SeguimientoConsulta, el mismo componente que usa el link "Ver mi
+  // turno" del mail. "cargando" siempre primero, igual en servidor y
+  // cliente: leer localStorage ya en el useState inicial haría que el
+  // HTML del server (sin `window`) no coincida con el del cliente y React
+  // tira error de hidratación — la lectura real pasa en el useEffect.
+  const [idTrackeado, setIdTrackeado] = useState<string | null | "cargando">("cargando");
+
+  useEffect(() => {
+    const guardadas = leerMisConsultas();
+    // Solo la más reciente puede estar realmente en curso — una más vieja
+    // sin resolver ya quedó atrás.
+    setIdTrackeado(guardadas.length > 0 ? guardadas[guardadas.length - 1].id : null);
+  }, []);
 
   const hoyISO = diasDisponibles?.[0]?.fecha ?? null;
 
@@ -174,6 +192,15 @@ export default function ConsultaPage() {
         const consultation = await createRes.json();
         id = consultation.id;
         setConsultationId(id);
+        // Antes de salir hacia Mercado Pago (o mostrar el modo mock): si el
+        // paciente vuelve atrás sin pagar, esto es lo que le permite a la
+        // página reconocer que ya había una consulta en curso.
+        agregarMiConsulta({
+          id: consultation.id,
+          fecha: consultation.fecha,
+          hora: consultation.hora,
+          tipoConsulta: consultation.tipoConsulta,
+        });
       }
 
       const checkoutRes = await fetch(`/api/consultations/${id}/checkout`, { method: "POST" });
@@ -215,12 +242,37 @@ export default function ConsultaPage() {
       if (payJson.resultado.aprobado) {
         router.push(`/consulta/${consultationId}/espera`);
       } else {
+        quitarMiConsulta(consultationId);
         setRechazado(true);
         setEnviando(false);
       }
     } catch {
       setEnviando(false);
     }
+  }
+
+  // Antes que nada: si este navegador ya tiene una consulta en curso
+  // (creada por acá o vuelta de Mercado Pago sin pagar), esa manda por
+  // sobre el wizard de reserva — nunca empezar una nueva de la nada
+  // mientras haya una activa sin resolver. onNoEncontrada cae de nuevo al
+  // wizard sin mostrar error: un id viejo en localStorage no es un
+  // problema real, a diferencia de un link roto en /consulta/[id]/seguimiento.
+  if (idTrackeado === "cargando") {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-white">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-navy border-t-transparent" />
+      </main>
+    );
+  }
+
+  if (idTrackeado) {
+    return (
+      <SeguimientoConsulta
+        consultationId={idTrackeado}
+        onNuevaReserva={() => setIdTrackeado(null)}
+        onNoEncontrada={() => setIdTrackeado(null)}
+      />
+    );
   }
 
   const pasos: { key: Step; label: string }[] = [
