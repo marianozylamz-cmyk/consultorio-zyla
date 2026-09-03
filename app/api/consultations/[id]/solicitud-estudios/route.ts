@@ -5,6 +5,7 @@ import { generarSolicitudEstudiosPdf } from "@/lib/certificatePdf";
 import { documentService } from "@/services/documentService";
 import { doctorProfile } from "@/data/doctorProfile";
 import { SolicitudEstudiosInput } from "@/types";
+import { nombreArchivoDocumento } from "@/lib/documentLabels";
 
 // ==========================================================
 // Genera un PDF de "Solicitud de estudios complementarios" con texto
@@ -37,7 +38,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
 
     const pdfBuffer = await generarSolicitudEstudiosPdf(consultation, input);
     const dataUrl = `data:application/pdf;base64,${pdfBuffer.toString("base64")}`;
-    const nombreArchivo = `solicitud-estudios-${consultation.paciente.nombre.replace(/\s+/g, "_").toLowerCase()}-${consultation.fecha}.pdf`;
+    const nombreArchivo = nombreArchivoDocumento("solicitud-estudios", consultation.paciente.nombre);
 
     const doc = await documentService.guardar({
       consultationId: consultation.id,

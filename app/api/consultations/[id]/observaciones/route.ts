@@ -4,6 +4,7 @@ import { errorDeServidor } from "@/lib/apiErrors";
 import { generarObservacionesPdf } from "@/lib/certificatePdf";
 import { documentService } from "@/services/documentService";
 import { doctorProfile } from "@/data/doctorProfile";
+import { nombreArchivoDocumento } from "@/lib/documentLabels";
 
 // ==========================================================
 // Genera un PDF de "Observaciones médicas" con el texto libre que
@@ -36,7 +37,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
 
     const pdfBuffer = await generarObservacionesPdf(consultation, body.texto.trim());
     const dataUrl = `data:application/pdf;base64,${pdfBuffer.toString("base64")}`;
-    const nombreArchivo = `observaciones-${consultation.paciente.nombre.replace(/\s+/g, "_").toLowerCase()}-${consultation.fecha}.pdf`;
+    const nombreArchivo = nombreArchivoDocumento("observaciones", consultation.paciente.nombre);
 
     const doc = await documentService.guardar({
       consultationId: consultation.id,

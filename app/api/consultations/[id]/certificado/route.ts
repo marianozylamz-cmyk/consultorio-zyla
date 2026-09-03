@@ -5,6 +5,7 @@ import { generarCertificadoPdf } from "@/lib/certificatePdf";
 import { documentService } from "@/services/documentService";
 import { doctorProfile } from "@/data/doctorProfile";
 import { CertificateInput } from "@/types";
+import { nombreArchivoDocumento } from "@/lib/documentLabels";
 
 // ==========================================================
 // Genera un certificado médico simple (PDF) con los datos que ya
@@ -39,7 +40,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
 
     const pdfBuffer = await generarCertificadoPdf(consultation, input);
     const dataUrl = `data:application/pdf;base64,${pdfBuffer.toString("base64")}`;
-    const nombreArchivo = `certificado-${consultation.paciente.nombre.replace(/\s+/g, "_").toLowerCase()}-${consultation.fecha}.pdf`;
+    const nombreArchivo = nombreArchivoDocumento("certificado", consultation.paciente.nombre);
 
     const doc = await documentService.guardar({
       consultationId: consultation.id,

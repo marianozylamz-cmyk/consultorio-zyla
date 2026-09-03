@@ -11,7 +11,24 @@ import { IconCheck } from "@/components/icons";
 import { doctorProfile } from "@/data/doctorProfile";
 import { formatFechaLargaAR, toISODate } from "@/lib/availability";
 import { DOCUMENT_TYPE_LABEL } from "@/lib/documentLabels";
+import { ESTADO_LABEL } from "@/lib/estadoLabels";
 import { fileToDataUrl } from "@/lib/files";
+
+const PAGO_LABEL: Record<Consultation["pago"]["estado"], { label: string; className: string }> = {
+  aprobado: { label: "Pago aprobado", className: "badge-primary" },
+  pendiente: { label: "Pago pendiente", className: "badge-muted" },
+  rechazado: { label: "Pago rechazado", className: "badge bg-red-50 text-red-600" },
+};
+
+function formatFechaHoraAR(iso: string): string {
+  return new Date(iso).toLocaleString("es-AR", {
+    timeZone: "America/Argentina/Buenos_Aires",
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
 
 const TIPOS: { value: DocumentType; label: string }[] = [
   { value: "receta", label: "Receta" },
@@ -25,6 +42,7 @@ export default function AdminConsultaDetalle({ params }: { params: { id: string 
   const [consultation, setConsultation] = useState<Consultation | null>(null);
   const [tipoSeleccionado, setTipoSeleccionado] = useState<DocumentType>("receta");
   const [subiendo, setSubiendo] = useState(false);
+  const [eliminandoDocId, setEliminandoDocId] = useState<string | null>(null);
   const [mostrarCertificado, setMostrarCertificado] = useState(false);
   const [mostrarObservaciones, setMostrarObservaciones] = useState(false);
   const [mostrarSolicitudEstudios, setMostrarSolicitudEstudios] = useState(false);
@@ -116,6 +134,18 @@ export default function AdminConsultaDetalle({ params }: { params: { id: string 
     }
   }
 
+  async function eliminarDocumento(docId: string) {
+    if (eliminandoDocId) return;
+    if (!window.confirm("¿Eliminar este documento? No se puede deshacer.")) return;
+    setEliminandoDocId(docId);
+    try {
+      await fetch(`/api/consultations/${params.id}/documents/${docId}`, { method: "DELETE" });
+      await cargar();
+    } finally {
+      setEliminandoDocId(null);
+    }
+  }
+
   async function enviarDocumentacion(esReenvio: boolean) {
     if (esReenvio) {
       const confirmar = window.confirm(
@@ -198,6 +228,10 @@ export default function AdminConsultaDetalle({ params }: { params: { id: string 
   const enCurso = c.estado === "en_consulta";
   const puedeCertificar = c.estado === "lista" || c.estado === "en_consulta" || c.estado === "finalizada";
   const yaEnviada = Boolean(c.documentacionEnviadaAt);
+  const hayAccionesAtencion = puedeAtender || puedeLlamar || enCurso;
+  const estadoInfo = ESTADO_LABEL[c.estado];
+  const pagoInfo = PAGO_LABEL[c.pago.estado];
+  const tipoNombre = doctorProfile.consultaOnline.tipos.find((t) => t.id === c.tipoConsulta)?.nombre ?? c.tipoConsulta;
 
   return (
     <main className="min-h-screen bg-bgsoft">
@@ -211,78 +245,109 @@ export default function AdminConsultaDetalle({ params }: { params: { id: string 
 
       <div className="mx-auto max-w-2xl space-y-6 px-5 py-8">
         <div className="card">
-          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <h1 className="text-xl font-semibold text-ink">{c.paciente.nombre}</h1>
-            <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-              {puedeAtender && (
-                <button
-                  className="btn-primary !py-2.5"
-                  disabled={accionEnCurso !== null}
-                  onClick={() => cambiarEstado("atender", "lista")}
-                >
-                  {accionEnCurso === "atender" ? "Atendiendo…" : "Atender"}
-                </button>
-              )}
-              {puedeLlamar && (
-                <button
-                  className="btn-primary !py-2.5"
-                  disabled={accionEnCurso !== null}
-                  onClick={() => cambiarEstado("llamada", "en_consulta")}
-                >
-                  {enCurso ? "Volver a la videollamada" : "Iniciar videollamada"}
-                </button>
-              )}
-              {puedeLlamar && (
-                <button className="btn-secondary !py-2.5" onClick={copiarLinkVideollamada}>
-                  {linkCopiado ? "¡Copiado!" : "Copiar link de videollamada"}
-                </button>
-              )}
-              {enCurso && (
-                <button
-                  className="btn-secondary !py-2.5"
-                  disabled={accionEnCurso !== null}
-                  onClick={() => cambiarEstado("finalizar", "finalizada")}
-                >
-                  {accionEnCurso === "finalizar" ? "Finalizando…" : "Finalizar consulta"}
-                </button>
-              )}
-              {puedeCertificar && (
-                <button className="btn-secondary !py-2.5" onClick={() => setMostrarCertificado(true)}>
-                  Crear certificado
-                </button>
-              )}
-              {puedeCertificar && (
-                <button className="btn-secondary !py-2.5" onClick={() => setMostrarObservaciones(true)}>
-                  Crear observaciones
-                </button>
-              )}
-              {puedeCertificar && (
-                <button className="btn-secondary !py-2.5" onClick={() => setMostrarSolicitudEstudios(true)}>
-                  Solicitar estudios complementarios
-                </button>
-              )}
-              <button className="btn-secondary !py-2.5" onClick={() => setMostrarSecretaria(true)}>
-                Solicitar receta a secretaría
-              </button>
+          <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h1 className="text-xl font-semibold text-ink">{c.paciente.nombre}</h1>
+              <p className="mt-1 text-sm text-muted">
+                {c.esAhora ? "Consulta ahora" : `${formatFechaLargaAR(c.fecha)} · ${c.hora} hs`}
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className={`flex items-center gap-1.5 text-xs font-semibold ${estadoInfo.textClassName}`}>
+                <span className={`h-2 w-2 rounded-full ${estadoInfo.dotClassName}`} />
+                {estadoInfo.label}
+              </span>
+              <span className={pagoInfo.className}>{pagoInfo.label}</span>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-y-3 text-sm">
-            <div className="text-muted">DNI</div>
-            <div className="text-ink break-all">{c.paciente.dni}</div>
-            <div className="text-muted">WhatsApp</div>
-            <div className="text-ink break-all">{c.paciente.whatsapp}</div>
-            <div className="text-muted">Email</div>
-            <div className="text-ink break-all">{c.paciente.email}</div>
-            <div className="text-muted">Fecha</div>
-            <div className="text-ink">{c.fecha} · {c.hora}</div>
-            <div className="text-muted">Tipo</div>
-            <div className="text-ink">
-              {doctorProfile.consultaOnline.tipos.find((t) => t.id === c.tipoConsulta)?.nombre ?? c.tipoConsulta}
+
+          <div className="mb-5 grid grid-cols-1 gap-x-6 gap-y-3 rounded-xl bg-bgsoft p-4 text-sm sm:grid-cols-2">
+            <div>
+              <p className="text-xs text-muted">DNI</p>
+              <p className="break-all text-ink">{c.paciente.dni}</p>
             </div>
-            <div className="text-muted">Precio</div>
-            <div className="text-ink">${c.precio.toLocaleString("es-AR")}</div>
-            <div className="text-muted">Pago</div>
-            <div className="text-ink capitalize">{c.pago.estado}</div>
+            <div>
+              <p className="text-xs text-muted">Tipo de consulta</p>
+              <p className="text-ink">
+                {tipoNombre} · ${c.precio.toLocaleString("es-AR")}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-muted">WhatsApp</p>
+              <p className="break-all text-ink">{c.paciente.whatsapp}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted">Email</p>
+              <a href={`mailto:${c.paciente.email}`} className="break-all text-navy hover:underline">
+                {c.paciente.email}
+              </a>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            {hayAccionesAtencion && (
+              <div>
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">Atención</p>
+                <div className="flex flex-wrap gap-2">
+                  {puedeAtender && (
+                    <button
+                      className="btn-primary !py-2.5"
+                      disabled={accionEnCurso !== null}
+                      onClick={() => cambiarEstado("atender", "lista")}
+                    >
+                      {accionEnCurso === "atender" ? "Atendiendo…" : "Atender"}
+                    </button>
+                  )}
+                  {puedeLlamar && (
+                    <button
+                      className="btn-primary !py-2.5"
+                      disabled={accionEnCurso !== null}
+                      onClick={() => cambiarEstado("llamada", "en_consulta")}
+                    >
+                      {enCurso ? "Volver a la videollamada" : "Iniciar videollamada"}
+                    </button>
+                  )}
+                  {puedeLlamar && (
+                    <button className="btn-secondary !py-2.5" onClick={copiarLinkVideollamada}>
+                      {linkCopiado ? "¡Copiado!" : "Copiar link de videollamada"}
+                    </button>
+                  )}
+                  {enCurso && (
+                    <button
+                      className="btn-secondary !py-2.5"
+                      disabled={accionEnCurso !== null}
+                      onClick={() => cambiarEstado("finalizar", "finalizada")}
+                    >
+                      {accionEnCurso === "finalizar" ? "Finalizando…" : "Finalizar consulta"}
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
+            <div className={hayAccionesAtencion ? "border-t border-line pt-4" : undefined}>
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">Documentación</p>
+              <div className="flex flex-wrap gap-2">
+                {puedeCertificar && (
+                  <button className="btn-secondary !py-2.5" onClick={() => setMostrarCertificado(true)}>
+                    Crear certificado
+                  </button>
+                )}
+                {puedeCertificar && (
+                  <button className="btn-secondary !py-2.5" onClick={() => setMostrarObservaciones(true)}>
+                    Crear observaciones
+                  </button>
+                )}
+                {puedeCertificar && (
+                  <button className="btn-secondary !py-2.5" onClick={() => setMostrarSolicitudEstudios(true)}>
+                    Solicitar estudios complementarios
+                  </button>
+                )}
+                <button className="btn-secondary !py-2.5" onClick={() => setMostrarSecretaria(true)}>
+                  Solicitar receta a secretaría
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -352,12 +417,26 @@ export default function AdminConsultaDetalle({ params }: { params: { id: string 
               {c.documentos.map((doc) => (
                 <div
                   key={doc.id}
-                  className="flex items-center justify-between rounded-xl border border-line px-4 py-3"
+                  className="flex items-center justify-between gap-3 rounded-xl border border-line px-4 py-3"
                 >
-                  <div>
-                    <p className="text-sm font-medium text-ink">{doc.nombre}</p>
-                    <p className="text-xs text-muted">{DOCUMENT_TYPE_LABEL[doc.tipo]}</p>
-                  </div>
+                  <a
+                    href={doc.dataUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="min-w-0 flex-1"
+                  >
+                    <p className="truncate text-sm font-medium text-navy hover:underline">{doc.nombre}</p>
+                    <p className="text-xs text-muted">
+                      {DOCUMENT_TYPE_LABEL[doc.tipo]} · {formatFechaHoraAR(doc.subidoEn)}
+                    </p>
+                  </a>
+                  <button
+                    className="shrink-0 text-xs font-medium text-red-600 hover:underline disabled:opacity-50"
+                    disabled={eliminandoDocId === doc.id}
+                    onClick={() => eliminarDocumento(doc.id)}
+                  >
+                    {eliminandoDocId === doc.id ? "Eliminando…" : "Eliminar"}
+                  </button>
                 </div>
               ))}
             </div>

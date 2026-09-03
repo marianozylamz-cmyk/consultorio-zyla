@@ -68,6 +68,7 @@ function esRutaDeMedico(pathname: string, method: string): boolean {
     const resto = match[1] ?? "";
     if (resto === "" && method === "PATCH") return true;
     if (resto === "/documents" && method === "POST") return true;
+    if (/^\/documents\/[^/]+$/.test(resto) && method === "DELETE") return true;
     if (resto === "/certificado" && method === "POST") return true;
     if (resto === "/observaciones" && method === "POST") return true;
     if (resto === "/solicitud-estudios" && method === "POST") return true;

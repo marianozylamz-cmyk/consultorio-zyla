@@ -447,6 +447,17 @@ export async function addDocumentToConsultation(
   return updated ? doc : undefined;
 }
 
+export async function removeDocumentFromConsultation(
+  consultationId: string,
+  docId: string
+): Promise<Consultation | undefined> {
+  const consultation = await getConsultation(consultationId);
+  if (!consultation) return undefined;
+
+  const documentos = consultation.documentos.filter((d) => d.id !== docId);
+  return updateConsultation(consultationId, { documentos });
+}
+
 /**
  * Marca que ya se mandó el email único con toda la documentación
  * disponible en ese momento. No es atómico con reclamarRecordatorio (no
