@@ -408,6 +408,24 @@ export async function listConsultationsParaRecordatorio(): Promise<Consultation[
 }
 
 /**
+ * Consultas abandonadas: siguen en "pendiente_pago" (el paciente empezó a
+ * reservar pero nunca llegó un pago aprobado NI rechazado) y ya pasó el
+ * tiempo de gracia — ver la limpieza en api/cron/recordatorios. Sin esto,
+ * el turno que tomaron en `turnos_reservados` queda bloqueado para
+ * siempre para cualquier otro paciente.
+ */
+export async function listConsultationsPendientesVencidas(antesDe: string): Promise<Consultation[]> {
+  const { data, error } = await supabaseAdmin
+    .from("consultations")
+    .select("*")
+    .eq("estado", "pendiente_pago")
+    .lt("creada_en", antesDe);
+
+  if (error) throw new Error(`No se pudieron listar las consultas pendientes vencidas: ${error.message}`);
+  return ((data as ConsultationRow[]) ?? []).map(rowToConsultation);
+}
+
+/**
  * "Reclama" el envío del recordatorio de forma atómica: solo actualiza (y
  * devuelve la fila) si `recordatorio_enviado_at` todavía era null. Si otra
  * ejecución del cron ya lo tomó primero, devuelve undefined — el llamador

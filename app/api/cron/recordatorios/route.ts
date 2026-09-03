@@ -1,5 +1,11 @@
 import { NextResponse } from "next/server";
-import { listConsultationsParaRecordatorio, reclamarRecordatorio } from "@/lib/store";
+import {
+  listConsultationsParaRecordatorio,
+  listConsultationsPendientesVencidas,
+  liberarTurnoDeConsulta,
+  reclamarRecordatorio,
+  updateConsultationSiEstadoEs,
+} from "@/lib/store";
 import { fechaHoraDesdeISO } from "@/lib/availability";
 import { notificationService } from "@/services/notificationService";
 import { errorDeServidor } from "@/lib/apiErrors";
@@ -8,10 +14,48 @@ import { errorDeServidor } from "@/lib/apiErrors";
 export const dynamic = "force-dynamic";
 
 const UNA_HORA_MS = 60 * 60 * 1000;
+const TREINTA_MINUTOS_MS = 30 * 60 * 1000;
+
+/**
+ * Reservas abandonadas: el paciente empezó a reservar (quedó en
+ * "pendiente_pago") pero nunca llegó un pago aprobado NI rechazado — ni
+ * webhook de Mercado Pago, ni el pago mock. Pasado el tiempo de gracia, las
+ * pasamos a "rechazada" (mismo patrón de trazabilidad que el pago manual:
+ * una nota en `pago`) y liberamos el turno con el mismo
+ * `liberarTurnoDeConsulta` que ya usan los demás caminos de rechazo — así
+ * el horario vuelve a quedar disponible para otro paciente.
+ *
+ * Update atómico condicionado a que siga en "pendiente_pago": si un
+ * webhook de Mercado Pago aprueba el pago casi en el mismo instante en que
+ * corre esta limpieza, gana el que llegue primero — nunca rechazamos algo
+ * que se acaba de pagar.
+ */
+async function limpiarReservasAbandonadas(ahora: Date): Promise<number> {
+  const limite = new Date(ahora.getTime() - TREINTA_MINUTOS_MS).toISOString();
+  const vencidas = await listConsultationsPendientesVencidas(limite);
+
+  let limpiadas = 0;
+  for (const consulta of vencidas) {
+    const actualizada = await updateConsultationSiEstadoEs(consulta.id, "pendiente_pago", {
+      estado: "rechazada",
+      pago: {
+        ...consulta.pago,
+        estado: "rechazado",
+        notaManual: "Expiró sin completar el pago (más de 30 minutos sin confirmación).",
+      },
+    });
+    if (!actualizada) continue;
+
+    await liberarTurnoDeConsulta(consulta.id);
+    limpiadas++;
+  }
+  return limpiadas;
+}
 
 // ==========================================================
-// Dispara los recordatorios de turno (1 hora antes). Lo llama
-// GitHub Actions cada 15 minutos (ver .github/workflows/recordatorios.yml),
+// Dispara los recordatorios de turno (1 hora antes) y limpia reservas
+// abandonadas (ver limpiarReservasAbandonadas arriba). Lo llama GitHub
+// Actions cada 15 minutos (ver .github/workflows/recordatorios.yml),
 // nunca un navegador ni el propio front — por eso exige el secret.
 //
 // Por qué no está protegido por el middleware de admin: ese Basic Auth es
@@ -28,6 +72,10 @@ export async function POST(req: Request) {
 
   try {
     const ahora = new Date();
+
+    const reservasLimpiadas = await limpiarReservasAbandonadas(ahora);
+    console.log(`[cron/recordatorios] Reservas abandonadas limpiadas: ${reservasLimpiadas}`);
+
     const candidatas = await listConsultationsParaRecordatorio();
 
     const porMandar = candidatas.filter((c) => {
@@ -56,7 +104,12 @@ export async function POST(req: Request) {
       }
     }
 
-    return NextResponse.json({ evaluadas: candidatas.length, procesadas: resultados.length, resultados });
+    return NextResponse.json({
+      reservasLimpiadas,
+      evaluadas: candidatas.length,
+      procesadas: resultados.length,
+      resultados,
+    });
   } catch (error) {
     return errorDeServidor(error, "No se pudieron procesar los recordatorios.");
   }
