@@ -54,7 +54,10 @@ export const doctorProfile: DoctorProfile = {
         id: "estudios",
         nombre: "Consulta por estudios",
         descripcion: "Para revisar resultados de estudios o análisis ya realizados.",
-        precio: 5000,
+        // Bajado temporalmente a $100 para probar el circuito de pago real con
+        // Mercado Pago (token de producción) sin arriesgar plata de verdad.
+        // Volver a $5.000 antes de que esto quede expuesto a pacientes reales.
+        precio: 100,
       },
       {
         id: "normal",
